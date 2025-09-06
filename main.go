@@ -1,0 +1,167 @@
+package main
+
+import (
+	"context"
+	"ec.com/auth"
+	"ec.com/database"
+	m "ec.com/models"
+	"ec.com/pkg"
+	"ec.com/routes"
+	s "ec.com/storage"
+	"encoding/json"
+	"github.com/go-oauth2/oauth2/v4/errors"
+	"github.com/go-oauth2/oauth2/v4/generates"
+	"github.com/go-oauth2/oauth2/v4/manage"
+	"github.com/go-oauth2/oauth2/v4/models"
+	"github.com/go-oauth2/oauth2/v4/server"
+	"github.com/go-oauth2/oauth2/v4/store"
+	"github.com/gofiber/fiber/v2"
+	jwtware "github.com/gofiber/jwt/v3"
+	"github.com/golang-jwt/jwt"
+	"github.com/valyala/fasthttp/fasthttpadaptor"
+	"log"
+	"net/http"
+)
+
+func init() {
+	//if err := godotenv.Load(); err != nil {
+	//	log.Fatal("Failed to load configuration file ")
+	//}
+	pkg.InitNode()
+	database.Connect()
+}
+
+func jwtError(c *fiber.Ctx, err error) error {
+	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+		"error": "Unauthorized",
+	})
+}
+
+func main() {
+
+	manager := manage.NewDefaultManager()
+	manager.SetAuthorizeCodeTokenCfg(manage.DefaultAuthorizeCodeTokenCfg)
+
+	// Token storage
+	tokenStore := s.NewGormTokenStore(database.DB)
+	manager.MustTokenStorage(tokenStore, nil)
+
+	// Server
+	srv := server.NewDefaultServer(manager)
+
+	// Client store
+	clientStore := store.NewClientStore()
+	manager.MapClientStorage(clientStore)
+	manager.MapAccessGenerate(
+		generates.NewJWTAccessGenerate("auth-server", []byte("SECRET_SIGNING_KEY"), jwt.SigningMethodHS256),
+	)
+
+	clientStore.Set("encerrar", &models.Client{
+		ID:     "encerrar",
+		Secret: "contract123",
+		Domain: "http://localhost",
+	})
+
+	manager.SetRefreshTokenCfg(manage.DefaultRefreshTokenCfg)
+
+	srv.SetPasswordAuthorizationHandler(func(ctx context.Context, clientID, username, password string) (string, error) {
+		log.Printf("PasswordAuthHandler: client=%s user=%s pass=%s", clientID, username, password)
+
+		var user m.User
+		var err error
+
+		if len(password) == 4 {
+			log.Println("Trying validation code login")
+			user, err = auth.GetUserWithValidaCode(username, password)
+		} else {
+			log.Println("Trying password login")
+			user, err = auth.GetUserWithPassword(username, password)
+		}
+
+		if err != nil {
+			log.Println("Auth failed:", err)
+			return "", errors.ErrAccessDenied
+		}
+
+		userJSON, _ := json.Marshal(struct {
+			ID    int64
+			Email string
+		}{
+			ID:    user.ID,
+			Email: user.Email,
+		})
+
+		log.Println("Auth success:", string(userJSON))
+		return string(userJSON), nil
+	})
+
+	// Password handler
+	//srv.SetPasswordAuthorizationHandler(func(ctx context.Context, clientID, username, password string) (string, error) {
+	//	fmt.Println("SetPasswordAuthorizationHandler=> ")
+	//	var user m.User
+	//	var err error
+	//	if len(password) == 4 {
+	//		user, err = auth.GetUserWithValidaCode(username, password)
+	//		if err != nil {
+	//			return "", err
+	//		}
+	//	} else {
+	//		user, err = auth.GetUserWithPassword(username, password)
+	//		if err != nil {
+	//			return "", err
+	//		}
+	//	}
+	//
+	//	fmt.Println("SetPasswordAuthorizationHandler=> ", user)
+	//	userJSON, err := json.Marshal(struct {
+	//		ID    int64
+	//		Email string
+	//	}{
+	//		ID:    user.ID,
+	//		Email: user.Email,
+	//	})
+	//
+	//	if err != nil {
+	//		//fmt.Println("SetPasswordAuthorizationHandler=> ", err)
+	//		return "", errors.ErrServerError
+	//	}
+	//	fmt.Println("---------------------=> ", string(userJSON))
+	//	return string(userJSON), nil
+	//})
+
+	app := fiber.New()
+
+	app.Post("/token", func(c *fiber.Ctx) error {
+		fasthttpadaptor.NewFastHTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+			err := srv.HandleTokenRequest(w, r)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+			}
+		}))(c.Context())
+
+		return nil
+	})
+
+	app.Post("/validation/code", func(c *fiber.Ctx) error {
+		fasthttpadaptor.NewFastHTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			err := srv.HandleTokenRequest(w, r)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+			}
+		}))(c.Context())
+
+		return nil
+	})
+
+	app.Use("/", jwtware.New(jwtware.Config{
+		SigningKey:   []byte("SECRET_SIGNING_KEY"),
+		ContextKey:   "user", // onde o token será armazenado no contexto
+		ErrorHandler: jwtError,
+	}))
+
+	routes.UserRoutes(app)
+	routes.SolicitationRoutes(app)
+
+	app.Listen(":3002")
+}

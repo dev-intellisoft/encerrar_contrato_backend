@@ -1,0 +1,10 @@
+app.db
+.idea
+build
+bin
+storage
+grs
+.env
+.env.development
+.env.production
+data/
