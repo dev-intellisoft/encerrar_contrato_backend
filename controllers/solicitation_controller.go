@@ -32,7 +32,7 @@ func CreateSolicitation(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(solicitation)
+	return c.Status(fiber.StatusCreated).JSON(solicitation)
 }
 
 func GetSolicitation(c *fiber.Ctx) error {

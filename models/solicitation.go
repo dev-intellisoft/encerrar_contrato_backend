@@ -12,7 +12,7 @@ type Solicitation struct {
 	AddressID  int64    `json:"address_id"`
 	Address    Address  `gorm:"foreignKey:AddressID;references:ID" json:"address"`
 	Services   string   `json:"services"`
-	Status     string   `json:"status"`
+	Status     int      `json:"status"`
 }
 
 func (s *Solicitation) BeforeCreate(tx *gorm.DB) (err error) {
