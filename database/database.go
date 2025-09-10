@@ -2,15 +2,15 @@ package database
 
 import (
 	"ec.com/models"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
+	_ "gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	_ "modernc.org/sqlite"
 )
 
 var DB *gorm.DB
 
 func Connect() {
-	db, err := gorm.Open(sqlite.Open("data.db"))
+	db, err := gorm.Open(postgres.Open("host=localhost user=encerrar password=123456789 dbname=encerrar port=5432 sslmode=disable"), &gorm.Config{})
 	if err != nil {
 		println(err.Error())
 		panic("Failed to connect to database")
