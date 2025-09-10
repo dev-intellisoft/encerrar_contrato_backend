@@ -16,6 +16,7 @@ import (
 	"github.com/go-oauth2/oauth2/v4/server"
 	"github.com/go-oauth2/oauth2/v4/store"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	jwtware "github.com/gofiber/jwt/v3"
 	"github.com/golang-jwt/jwt"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
@@ -32,6 +33,7 @@ func init() {
 }
 
 func jwtError(c *fiber.Ctx, err error) error {
+	println(err.Error())
 	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 		"error": "Unauthorized",
 	})
@@ -130,12 +132,18 @@ func main() {
 	//})
 
 	app := fiber.New()
-
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*", // or "http://localhost:58499"
+		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+	}))
+	app.Static("/", "./public")
 	app.Post("/token", func(c *fiber.Ctx) error {
 		fasthttpadaptor.NewFastHTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			err := srv.HandleTokenRequest(w, r)
 			if err != nil {
+				println(err.Error())
 				http.Error(w, err.Error(), http.StatusBadRequest)
 			}
 		}))(c.Context())
