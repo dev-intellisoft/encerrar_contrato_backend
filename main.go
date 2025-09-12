@@ -86,50 +86,18 @@ func main() {
 		}
 
 		userJSON, _ := json.Marshal(struct {
-			ID    int64
-			Email string
+			ID     int64
+			Agency string
+			Email  string
 		}{
-			ID:    user.ID,
-			Email: user.Email,
+			ID:     user.ID,
+			Agency: user.Agency,
+			Email:  user.Email,
 		})
 
 		log.Println("Auth success:", string(userJSON))
 		return string(userJSON), nil
 	})
-
-	// Password handler
-	//srv.SetPasswordAuthorizationHandler(func(ctx context.Context, clientID, username, password string) (string, error) {
-	//	fmt.Println("SetPasswordAuthorizationHandler=> ")
-	//	var user m.User
-	//	var err error
-	//	if len(password) == 4 {
-	//		user, err = auth.GetUserWithValidaCode(username, password)
-	//		if err != nil {
-	//			return "", err
-	//		}
-	//	} else {
-	//		user, err = auth.GetUserWithPassword(username, password)
-	//		if err != nil {
-	//			return "", err
-	//		}
-	//	}
-	//
-	//	fmt.Println("SetPasswordAuthorizationHandler=> ", user)
-	//	userJSON, err := json.Marshal(struct {
-	//		ID    int64
-	//		Email string
-	//	}{
-	//		ID:    user.ID,
-	//		Email: user.Email,
-	//	})
-	//
-	//	if err != nil {
-	//		//fmt.Println("SetPasswordAuthorizationHandler=> ", err)
-	//		return "", errors.ErrServerError
-	//	}
-	//	fmt.Println("---------------------=> ", string(userJSON))
-	//	return string(userJSON), nil
-	//})
 
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
