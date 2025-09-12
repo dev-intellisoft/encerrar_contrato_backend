@@ -11,6 +11,7 @@ type Solicitation struct {
 	Customer   Customer `gorm:"foreignKey:CustomerID;references:ID" json:"customer"`
 	AddressID  int64    `json:"address_id"`
 	Address    Address  `gorm:"foreignKey:AddressID;references:ID" json:"address"`
+	Agency     string   `json:"agency"`
 	Services   string   `json:"services"`
 	Status     int      `json:"status"`
 }

@@ -3,12 +3,15 @@ package controllers
 import (
 	"ec.com/database"
 	"ec.com/models"
+	"ec.com/utils"
 	"encoding/json"
 	"github.com/gofiber/fiber/v2"
 )
 
 func CreateSolicitation(c *fiber.Ctx) error {
+	var agency string = utils.GetAgency(c.Locals("user"))
 	var solicitation models.Solicitation
+	solicitation.Agency = agency
 	var customer models.Customer
 
 	if err := json.Unmarshal(c.Body(), &solicitation); err != nil {
@@ -36,13 +39,24 @@ func CreateSolicitation(c *fiber.Ctx) error {
 }
 
 func GetSolicitation(c *fiber.Ctx) error {
+	var agency string = utils.GetAgency(c.Locals("user"))
 	var solicitation []models.Solicitation
-	if err := database.DB.Preload("Customer").Preload("Address").Find(&solicitation).Error; err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":   "cannot find solicitation",
-			"details": err.Error(),
-		})
+	if agency != "encerrar" && agency != "" {
+		if err := database.DB.Where("agency = ?", agency).Preload("Customer").Preload("Address").Find(&solicitation).Error; err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error":   "cannot find solicitation",
+				"details": err.Error(),
+			})
+		}
+	} else {
+		if err := database.DB.Preload("Customer").Preload("Address").Find(&solicitation).Error; err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error":   "cannot find solicitation",
+				"details": err.Error(),
+			})
+		}
 	}
+
 	return c.Status(fiber.StatusOK).JSON(solicitation)
 }
 

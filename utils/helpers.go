@@ -34,3 +34,14 @@ func GenerateAuthCode() string {
 	// Convert to hex string
 	return hex.EncodeToString(hash[:])
 }
+
+func GetAgency(token interface{}) string {
+	var u models.User
+	user := token.(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	sub := claims["sub"].(string)
+	if err := json.Unmarshal([]byte(sub), &u); err != nil {
+		return ""
+	}
+	return u.Agency
+}
