@@ -83,6 +83,58 @@ func UpdateSolicitation(c *fiber.Ctx) error {
 	return c.JSON(solicitation)
 }
 
+func StartSolicitation(c *fiber.Ctx) error {
+	var solicitation models.Solicitation
+	id, err := c.ParamsInt("id")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   true,
+			"details": err.Error(),
+		})
+	}
+	err = database.DB.Where(models.Solicitation{ID: int64(id)}).Updates(models.Solicitation{Status: 1}).Scan(&solicitation).Error
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error":   true,
+			"details": err.Error(),
+		})
+	}
+	if err := database.DB.Preload("Customer").Preload("Address").First(&solicitation, id).Error; err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   "cannot find solicitation",
+			"details": err.Error(),
+		})
+	}
+	return c.Status(fiber.StatusOK).JSON(solicitation)
+}
+
+func EndSolicitation(c *fiber.Ctx) error {
+	var solicitation models.Solicitation
+	id, err := c.ParamsInt("id")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   true,
+			"details": err.Error(),
+		})
+	}
+
+	if err := database.DB.Where(models.Solicitation{ID: int64(id)}).Updates(models.Solicitation{Status: 2}).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error":   true,
+			"details": err.Error(),
+		})
+	}
+
+	if err := database.DB.Preload("Customer").Preload("Address").First(&solicitation, id).Error; err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   "cannot find solicitation",
+			"details": err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(solicitation)
+}
+
 func DeleteSolicitation(c *fiber.Ctx) error {
 	id := c.Params("id")
 	var solicitation models.Solicitation
