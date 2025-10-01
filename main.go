@@ -5,7 +5,6 @@ import (
 	"ec.com/auth"
 	"ec.com/database"
 	m "ec.com/models"
-	"ec.com/pkg"
 	"ec.com/routes"
 	s "ec.com/storage"
 	"encoding/json"
@@ -19,6 +18,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	jwtware "github.com/gofiber/jwt/v3"
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
 	"log"
 	"net/http"
@@ -28,7 +28,7 @@ func init() {
 	//if err := godotenv.Load(); err != nil {
 	//	log.Fatal("Failed to load configuration file ")
 	//}
-	pkg.InitNode()
+	//pkg.InitNode()
 	database.Connect()
 }
 
@@ -40,14 +40,12 @@ func jwtError(c *fiber.Ctx, err error) error {
 }
 
 func main() {
-
 	manager := manage.NewDefaultManager()
 	manager.SetAuthorizeCodeTokenCfg(manage.DefaultAuthorizeCodeTokenCfg)
 
 	// Token storage
 	tokenStore := s.NewGormTokenStore(database.DB)
 	manager.MustTokenStorage(tokenStore, nil)
-
 	// Server
 	srv := server.NewDefaultServer(manager)
 
@@ -86,7 +84,7 @@ func main() {
 		}
 
 		userJSON, _ := json.Marshal(struct {
-			ID     int64
+			ID     uuid.UUID
 			Agency string
 			Email  string
 		}{
@@ -106,6 +104,7 @@ func main() {
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 	}))
 	app.Static("/", "./public")
+
 	app.Post("/token", func(c *fiber.Ctx) error {
 		fasthttpadaptor.NewFastHTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -139,5 +138,7 @@ func main() {
 	routes.UserRoutes(app)
 	routes.SolicitationRoutes(app)
 
-	app.Listen(":3002")
+	if err := app.Listen(":3002"); err != nil {
+		println(err.Error())
+	}
 }
