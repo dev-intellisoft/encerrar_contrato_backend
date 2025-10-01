@@ -7,16 +7,17 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"io"
 )
 
-func GetUserID(token interface{}) int64 {
+func GetUserID(token interface{}) uuid.UUID {
 	var u models.User
 	user := token.(*jwt.Token)
 	claims := user.Claims.(jwt.MapClaims)
 	sub := claims["sub"].(string)
 	if err := json.Unmarshal([]byte(sub), &u); err != nil {
-		return 0
+		return uuid.Nil
 	}
 	return u.ID
 }

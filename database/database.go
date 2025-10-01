@@ -15,12 +15,12 @@ func Connect() {
 		println(err.Error())
 		panic("Failed to connect to database")
 	}
+	//db.Migrator().DropTable(&models.OAuth2Token{}, &models.Address{}, &models.Customer{}, &models.User{}, &models.Solicitation{})
 	db.AutoMigrate(&models.OAuth2Token{})
 	db.AutoMigrate(&models.Address{})
 	db.AutoMigrate(&models.Customer{})
 	db.AutoMigrate(&models.User{})
 	db.AutoMigrate(&models.Solicitation{})
-
 	SeedUser(db)
 
 	DB = db
