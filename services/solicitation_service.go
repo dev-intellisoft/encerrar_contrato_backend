@@ -1,0 +1,63 @@
+package services
+
+import (
+	"bytes"
+	"fmt"
+	"os"
+	"time"
+
+	"ec.com/database"
+	m "ec.com/models"
+	"ec.com/pkg"
+	"github.com/google/uuid"
+)
+
+func GetSolicitationById(id uuid.UUID) (m.Solicitation, error) {
+	var solicitation m.Solicitation
+	if err := database.DB.Preload("Customer").Preload("Address").Where("id = ?", id).First(&solicitation).Error; err != nil {
+		return solicitation, err
+	}
+	return solicitation, nil
+}
+
+func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
+	//var agency string = utils.GetAgency(c.Locals("user"))
+	var agency string = "encerrar"
+	solicitation.Agency = agency
+	var customer m.Customer
+
+	if err := database.DB.Where("email = ?", solicitation.Customer.Email).First(&customer).Scan(&customer).Error; err != nil {
+		if err := database.DB.Save(&solicitation.Customer).Error; err != nil {
+			return m.Solicitation{}, err
+		}
+	}
+
+	_ = database.DB.Where("email = ?", solicitation.Customer.Email).First(&customer).Scan(&customer)
+	solicitation.CustomerID = customer.ID
+	solicitation.Customer = customer
+
+	if err := database.DB.Create(&solicitation).Error; err != nil {
+		return m.Solicitation{}, err
+	}
+
+	res, err := pkg.Charge(solicitation)
+	if err != nil {
+		return m.Solicitation{}, err
+	}
+	fmt.Println(res)
+	//return solicitation, nil
+
+	body, err := os.ReadFile("templates/registration_success.html")
+	if err != nil {
+		return m.Solicitation{}, err
+	}
+	body = bytes.ReplaceAll(body, []byte("{{name}}"), []byte(solicitation.Customer.Name))
+	body = bytes.ReplaceAll(body, []byte("{{agency}}"), []byte("Encerrar Contrato"))
+	body = bytes.ReplaceAll(body, []byte("{{year}}"), []byte(time.Now().Format("2006")))
+
+	if err := pkg.SendMail(solicitation.Customer.Email, "Encerrar Contrato | Recebemos sua solicitação.", string(body)); err != nil {
+		println(err.Error())
+	}
+
+	return solicitation, nil
+}
