@@ -1,14 +1,12 @@
 package auth
 
 import (
+	"fmt"
+
 	"ec.com/database"
 	m "ec.com/models"
-	"fmt"
 	"github.com/go-oauth2/oauth2/v4/errors"
 )
-
-//123456789
-//123456789
 
 func GetUserWithPassword(username, password string) (m.User, error) {
 	fmt.Println(username, password)
