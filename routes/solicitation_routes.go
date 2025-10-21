@@ -13,4 +13,5 @@ func SolicitationRoutes(app *fiber.App) {
 	app.Put("/solicitations/:id/start", controllers.StartSolicitation)
 	app.Put("/solicitations/:id/end", controllers.EndSolicitation)
 	app.Delete("/solicitations/:id", controllers.DeleteSolicitation)
+	app.Post("/solicitations/send-email", controllers.SendSolicitation)
 }

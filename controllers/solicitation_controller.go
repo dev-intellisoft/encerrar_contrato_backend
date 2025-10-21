@@ -1,10 +1,17 @@
 package controllers
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"os"
+	"time"
+
 	"ec.com/database"
 	"ec.com/models"
+	"ec.com/pkg"
+	"ec.com/services"
 	"ec.com/utils"
-	"encoding/json"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
@@ -14,8 +21,6 @@ func CreateSolicitation(c *fiber.Ctx) error {
 	var solicitation models.Solicitation
 	solicitation.Agency = agency
 	var customer models.Customer
-
-	println(string(c.Body()))
 
 	if err := json.Unmarshal(c.Body(), &solicitation); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -45,6 +50,30 @@ func CreateSolicitation(c *fiber.Ctx) error {
 		})
 	}
 
+	res, err := pkg.Charge(solicitation)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   "cannot charge customer",
+			"details": err.Error(),
+		})
+	}
+	fmt.Println(res)
+
+	body, err := os.ReadFile("templates/registration_success.html")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   true,
+			"details": err.Error(),
+		})
+	}
+	body = bytes.ReplaceAll(body, []byte("{{name}}"), []byte(solicitation.Customer.Name))
+	body = bytes.ReplaceAll(body, []byte("{{agency}}"), []byte("Encerrar Contrato"))
+	body = bytes.ReplaceAll(body, []byte("{{year}}"), []byte(time.Now().Format("2006")))
+
+	if err := pkg.SendMail(solicitation.Customer.Email, "Encerrar Contrato | Recebemos sua solicitação.", string(body)); err != nil {
+		println(err.Error())
+	}
+
 	return c.Status(fiber.StatusCreated).JSON(solicitation)
 }
 
@@ -70,17 +99,16 @@ func GetSolicitation(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(solicitation)
 }
 
-func getSolicitationById(id string) (models.Solicitation, error) {
-	var solicitation models.Solicitation
-	if err := database.DB.Preload("Customer").Preload("Address").Where("id = ?", id).First(&solicitation).Error; err != nil {
-		return solicitation, err
-	}
-	return solicitation, nil
-}
-
 func GetSolicitationById(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id", ""))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   true,
+			"details": err.Error(),
+		})
+	}
 
-	solicitation, err := getSolicitationById(c.Params("id"))
+	solicitation, err := services.GetSolicitationById(id)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error":   "cannot find solicitation",
@@ -176,4 +204,43 @@ func DeleteSolicitation(c *fiber.Ctx) error {
 	database.DB.Where("id = ?", id).First(&solicitation)
 	database.DB.Where("id = ?", id).Delete(&solicitation)
 	return c.JSON(fiber.Map{"message": "solicitation deleted"})
+}
+
+func SendSolicitation(c *fiber.Ctx) error {
+	var data struct {
+		Email string `json:"email"`
+		Name  string `json:"name"`
+	}
+	if err := json.Unmarshal(c.Body(), &data); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   true,
+			"details": err.Error(),
+		})
+	}
+	if data.Email == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   true,
+			"details": "email is required",
+		})
+	}
+
+	body, err := os.ReadFile("templates/registration.html")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   true,
+			"details": err.Error(),
+		})
+	}
+	body = bytes.ReplaceAll(body, []byte("{{name}}"), []byte(data.Name))
+	body = bytes.ReplaceAll(body, []byte("{{agency}}"), []byte("Encerrar Contrato"))
+	body = bytes.ReplaceAll(body, []byte("{{year}}"), []byte(time.Now().Format("2006")))
+	body = bytes.ReplaceAll(body, []byte("{{link}}"), []byte("http://localhost:3002/#/register"))
+
+	if err := pkg.SendMail(data.Email, "Encerrar Contrato | Solicitação de informações para encerramento de contrato.", string(body)); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   true,
+			"details": err.Error(),
+		})
+	}
+	return c.Status(fiber.StatusOK).JSON(data)
 }

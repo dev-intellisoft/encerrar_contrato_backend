@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"log"
+	"net/http"
+
 	"ec.com/auth"
 	"ec.com/database"
 	m "ec.com/models"
 	"ec.com/routes"
 	s "ec.com/storage"
-	"encoding/json"
 	"github.com/go-oauth2/oauth2/v4/errors"
 	"github.com/go-oauth2/oauth2/v4/generates"
 	"github.com/go-oauth2/oauth2/v4/manage"
@@ -19,15 +22,14 @@ import (
 	jwtware "github.com/gofiber/jwt/v3"
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
+	"github.com/joho/godotenv"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
-	"log"
-	"net/http"
 )
 
 func init() {
-	//if err := godotenv.Load(); err != nil {
-	//	log.Fatal("Failed to load configuration file ")
-	//}
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("Failed to load configuration file ")
+	}
 	//pkg.InitNode()
 	database.Connect()
 }
@@ -40,16 +42,30 @@ func jwtError(c *fiber.Ctx, err error) error {
 }
 
 func main() {
+	//id, _ := uuid.Parse("5f9004a1-5287-450b-9327-2cc7654ac6c1")
+	//solicitation, _ := services.GetSolicitationById(id)
+	//fmt.Println(solicitation)
+	//customerId, err := pkg.GetAsaasCustomerIdByEmail(solicitation.Customer.Email)
+	//if err != nil {
+	//	fmt.Println(err)
+	//}
+	//fmt.Println(customerId)
+	//fmt.Println(solitation)
+	//pkg.CreateCustomer()
+
+	//customers, err := pkg.ListCustomers()
+	//if err != nil {
+	//	fmt.Println(err)
+	//}
+	//fmt.Println(customers)
+	////pkg.Bill()
+	//fmt.Println("Done!")
+	//return
 	manager := manage.NewDefaultManager()
 	manager.SetAuthorizeCodeTokenCfg(manage.DefaultAuthorizeCodeTokenCfg)
-
-	// Token storage
 	tokenStore := s.NewGormTokenStore(database.DB)
 	manager.MustTokenStorage(tokenStore, nil)
-	// Server
 	srv := server.NewDefaultServer(manager)
-
-	// Client store
 	clientStore := store.NewClientStore()
 	manager.MapClientStorage(clientStore)
 	manager.MapAccessGenerate(
@@ -103,6 +119,8 @@ func main() {
 		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 	}))
+	routes.RegistrationRoutes(app)
+
 	app.Static("/", "./public")
 
 	app.Post("/token", func(c *fiber.Ctx) error {
