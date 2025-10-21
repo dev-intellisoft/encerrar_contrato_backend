@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Templates de E-mail - Encerrar Contrato</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 600px;
+            margin: 30px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .header {
+            background-color: #2F80ED;
+            color: #ffffff;
+            text-align: center;
+            padding: 20px;
+            font-size: 22px;
+            font-weight: bold;
+        }
+        .content {
+            padding: 25px;
+            color: #333333;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #2F80ED;
+            color: #ffffff;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        .footer {
+            background-color: #f0f0f0;
+            text-align: center;
+            font-size: 13px;
+            color: #777777;
+            padding: 15px;
+        }
+    </style>
+</head>
+<body>
+
+
+<!-- TEMPLATE 7 - Serviço em andamento -->
+<div class="container">
+    <div class="header">Encerrar Contrato</div>
+    <div class="content">
+        <p>Olá {{nome}},</p>
+        <p>Boas notícias! Seu pedido de encerramento de contratos de <b>{{servicos}}</b> está agora em andamento.</p>
+        <p>Nossa equipe já iniciou os procedimentos junto às concessionárias. Você será informado sobre o progresso.</p>
+        <p><b>Equipe {{empresa_nome}}</b></p>
+    </div>
+    <div class="footer">© {{ano}} Encerrar Contrato — suporte@encerrarcontrato.com.br</div>
+</div>
+</body>
+</html>
