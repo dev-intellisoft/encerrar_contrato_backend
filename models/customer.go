@@ -20,3 +20,45 @@ func (c *Customer) BeforeCreate(tx *gorm.DB) (err error) {
 	}
 	return
 }
+
+type ASAASCustomerList struct {
+	Object     string          `json:"object"`
+	HasMore    bool            `json:"hasMore"`
+	TotalCount int             `json:"totalCount"`
+	Limit      int             `json:"limit"`
+	Offset     int             `json:"offset"`
+	Data       []ASAASCustomer `json:"data"`
+}
+
+type ASAASCustomer struct {
+	Object                string      `json:"object"`
+	ID                    string      `json:"id"`
+	DateCreated           string      `json:"dateCreated"`
+	Name                  string      `json:"name"`
+	Email                 string      `json:"email"`
+	Company               interface{} `json:"company"`
+	Phone                 *string     `json:"phone"`
+	MobilePhone           *string     `json:"mobilePhone"`
+	Address               *string     `json:"address"`
+	AddressNumber         *string     `json:"addressNumber"`
+	Complement            *string     `json:"complement"`
+	Province              *string     `json:"province"`
+	PostalCode            *string     `json:"postalCode"`
+	CPFOrCNPJ             *string     `json:"cpfCnpj"`
+	PersonType            *string     `json:"personType"`
+	Deleted               bool        `json:"deleted"`
+	AdditionalEmails      *string     `json:"additionalEmails"`
+	ExternalReference     *string     `json:"externalReference"`
+	NotificationDisabled  bool        `json:"notificationDisabled"`
+	Observations          *string     `json:"observations"`
+	MunicipalInscription  *string     `json:"municipalInscription"`
+	StateInscription      *string     `json:"stateInscription"`
+	CanDelete             bool        `json:"canDelete"`
+	CannotBeDeletedReason *string     `json:"cannotBeDeletedReason"`
+	CanEdit               bool        `json:"canEdit"`
+	CannotEditReason      *string     `json:"cannotEditReason"`
+	City                  interface{} `json:"city"`
+	CityName              *string     `json:"cityName"`
+	State                 *string     `json:"state"`
+	Country               *string     `json:"country"`
+}

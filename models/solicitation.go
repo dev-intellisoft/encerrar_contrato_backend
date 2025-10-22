@@ -6,20 +6,21 @@ import (
 )
 
 type Solicitation struct {
-	ID           uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
-	CustomerID   uuid.UUID `json:"customer_id"`
-	Customer     Customer  `gorm:"foreignKey:CustomerID;references:ID" json:"customer"`
-	AddressID    uuid.UUID `json:"address_id"`
-	Address      Address   `gorm:"foreignKey:AddressID;references:ID" json:"address"`
-	Agency       string    `json:"agency"`
-	Services     string    `json:"services"`
-	Status       int       `json:"status"`
-	GasCarrier   string    `json:"gas_carrier"`
-	WaterCarrier string    `json:"water_carrier"`
-	PowerCarrier string    `json:"power_carrier"`
-	Water        bool      `json:"water" gorm:"default:false"`
-	Gas          bool      `json:"gas" gorm:"default:false"`
-	Power        bool      `json:"power" gorm:"default:false"`
+	ID           uuid.UUID        `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	CustomerID   uuid.UUID        `json:"customer_id"`
+	Customer     Customer         `gorm:"foreignKey:CustomerID;references:ID" json:"customer"`
+	AddressID    uuid.UUID        `json:"address_id"`
+	Address      Address          `gorm:"foreignKey:AddressID;references:ID" json:"address"`
+	Agency       string           `json:"agency"`
+	Services     string           `json:"services"`
+	Status       int              `json:"status"`
+	GasCarrier   string           `json:"gas_carrier"`
+	WaterCarrier string           `json:"water_carrier"`
+	PowerCarrier string           `json:"power_carrier"`
+	Water        bool             `json:"water" gorm:"default:false"`
+	Gas          bool             `json:"gas" gorm:"default:false"`
+	Power        bool             `json:"power" gorm:"default:false"`
+	PIX          ASAASPixResponse `json:"pix" gorm:"-"`
 }
 
 func (s *Solicitation) BeforeCreate(tx *gorm.DB) (err error) {
