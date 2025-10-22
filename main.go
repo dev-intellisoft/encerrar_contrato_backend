@@ -42,25 +42,6 @@ func jwtError(c *fiber.Ctx, err error) error {
 }
 
 func main() {
-	//id, _ := uuid.Parse("5f9004a1-5287-450b-9327-2cc7654ac6c1")
-	//solicitation, _ := services.GetSolicitationById(id)
-	//fmt.Println(solicitation)
-	//customerId, err := pkg.GetAsaasCustomerIdByEmail(solicitation.Customer.Email)
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
-	//fmt.Println(customerId)
-	//fmt.Println(solitation)
-	//pkg.CreateCustomer()
-
-	//customers, err := pkg.ListCustomers()
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
-	//fmt.Println(customers)
-	////pkg.Bill()
-	//fmt.Println("Done!")
-	//return
 	manager := manage.NewDefaultManager()
 	manager.SetAuthorizeCodeTokenCfg(manage.DefaultAuthorizeCodeTokenCfg)
 	tokenStore := s.NewGormTokenStore(database.DB)

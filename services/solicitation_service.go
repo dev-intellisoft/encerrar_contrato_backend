@@ -25,27 +25,29 @@ func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
 	var agency string = "encerrar"
 	solicitation.Agency = agency
 	var customer m.Customer
+	exists := false
+	_ = database.DB.Where("email = ?", solicitation.Customer.Email).First(&customer).Scan(&customer)
+	if customer.ID != uuid.Nil {
+		exists = true
+	}
 
-	if err := database.DB.Where("email = ?", solicitation.Customer.Email).First(&customer).Scan(&customer).Error; err != nil {
-		if err := database.DB.Save(&solicitation.Customer).Error; err != nil {
+	if !exists {
+		if err := database.DB.Create(&solicitation.Customer).Scan(&customer).Error; err != nil {
 			return m.Solicitation{}, err
 		}
 	}
 
-	_ = database.DB.Where("email = ?", solicitation.Customer.Email).First(&customer).Scan(&customer)
 	solicitation.CustomerID = customer.ID
 	solicitation.Customer = customer
 
-	if err := database.DB.Create(&solicitation).Error; err != nil {
+	if err := database.DB.Create(&solicitation).Scan(&solicitation).Error; err != nil {
 		return m.Solicitation{}, err
 	}
 
-	res, err := pkg.Charge(solicitation)
+	solicitation, err := GetSolicitationById(solicitation.ID)
 	if err != nil {
 		return m.Solicitation{}, err
 	}
-	fmt.Println(res)
-	//return solicitation, nil
 
 	body, err := os.ReadFile("templates/registration_success.html")
 	if err != nil {
@@ -55,9 +57,20 @@ func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
 	body = bytes.ReplaceAll(body, []byte("{{agency}}"), []byte("Encerrar Contrato"))
 	body = bytes.ReplaceAll(body, []byte("{{year}}"), []byte(time.Now().Format("2006")))
 
+	//todo uncomment below for production
 	if err := pkg.SendMail(solicitation.Customer.Email, "Encerrar Contrato | Recebemos sua solicitação.", string(body)); err != nil {
 		println(err.Error())
 	}
+
+	fmt.Println("Solicitation created and e-mail sent!")
+	fmt.Println("Let's charge the customer!")
+
+	res, err := pkg.Charge(solicitation)
+	if err != nil {
+		println(err.Error())
+	}
+
+	solicitation.PIX = res
 
 	return solicitation, nil
 }

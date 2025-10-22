@@ -14,7 +14,10 @@ func CustomerCreateSolicitation(c *fiber.Ctx) error {
 
 	solicitation, err := services.CreateSolicitation(solicitation)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot create solicitation"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   "cannot create solicitation",
+			"details": err.Error(),
+		})
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(solicitation)
