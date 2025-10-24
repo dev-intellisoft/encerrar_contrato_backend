@@ -136,6 +136,7 @@ func main() {
 
 	routes.UserRoutes(app)
 	routes.SolicitationRoutes(app)
+	routes.AgencyRoutes(app)
 
 	if err := app.Listen(":3002"); err != nil {
 		println(err.Error())
