@@ -21,6 +21,7 @@ func Connect() {
 	db.AutoMigrate(&models.Customer{})
 	db.AutoMigrate(&models.User{})
 	db.AutoMigrate(&models.Solicitation{})
+	db.AutoMigrate(&models.Agency{})
 	SeedUser(db)
 
 	DB = db
