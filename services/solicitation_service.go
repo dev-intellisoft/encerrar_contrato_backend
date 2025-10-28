@@ -58,9 +58,12 @@ func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
 	body = bytes.ReplaceAll(body, []byte("{{year}}"), []byte(time.Now().Format("2006")))
 
 	//todo uncomment below for production
-	if err := pkg.SendMail(solicitation.Customer.Email, "Encerrar Contrato | Recebemos sua solicitação.", string(body)); err != nil {
+	id, err := pkg.SendMail(solicitation.Customer.Email, "Encerrar Contrato | Recebemos sua solicitação.", string(body))
+	if err != nil {
 		println(err.Error())
 	}
+
+	fmt.Println(id)
 
 	fmt.Println("Solicitation created and e-mail sent!")
 	fmt.Println("Let's charge the customer!")

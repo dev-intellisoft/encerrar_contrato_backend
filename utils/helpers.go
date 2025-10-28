@@ -3,13 +3,23 @@ package utils
 import (
 	"crypto/md5"
 	"crypto/rand"
-	"ec.com/models"
 	"encoding/hex"
 	"encoding/json"
+	"io"
+
+	"ec.com/models"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
-	"io"
 )
+
+func IsAgency(token interface{}) bool {
+	var u models.User
+	user := token.(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	sub := claims["sub"].(string)
+	_ = json.Unmarshal([]byte(sub), &u)
+	return u.Agency != "encerrar"
+}
 
 func GetUserID(token interface{}) uuid.UUID {
 	var u models.User
@@ -34,6 +44,15 @@ func GenerateAuthCode() string {
 
 	// Convert to hex string
 	return hex.EncodeToString(hash[:])
+}
+
+func GetAgencyId(token interface{}) uuid.UUID {
+	var u models.User
+	user := token.(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	sub := claims["sub"].(string)
+	_ = json.Unmarshal([]byte(sub), &u)
+	return u.ID
 }
 
 func GetAgency(token interface{}) string {

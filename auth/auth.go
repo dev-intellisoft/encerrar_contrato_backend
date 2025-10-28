@@ -10,14 +10,28 @@ import (
 
 func GetUserWithPassword(username, password string) (m.User, error) {
 	fmt.Println(username, password)
-	var user m.User
-	if err := database.DB.Find(&m.User{}, &m.User{Email: username}).Scan(&user).Error; err != nil {
-		fmt.Println(err)
-		return m.User{}, errors.ErrAccessDenied
-	}
-	fmt.Println(password, user.Password)
-	if password == user.Password {
-		return user, nil
+	if username == "test@example.com" {
+		var user m.User
+		if err := database.DB.Find(&m.User{}, &m.User{Email: username}).Scan(&user).Error; err != nil {
+			fmt.Println(err)
+			return m.User{}, errors.ErrAccessDenied
+		}
+		if password == user.Password {
+			return user, nil
+		}
+	} else {
+		var agency m.Agency
+		if err := database.DB.Find(&m.Agency{}, &m.Agency{Login: username}).Scan(&agency).Error; err != nil {
+			fmt.Println(err)
+			return m.User{}, errors.ErrAccessDenied
+		}
+		if password == agency.Password {
+			return m.User{
+				ID:     agency.ID,
+				Agency: agency.Name,
+				Email:  agency.Login,
+			}, nil
+		}
 	}
 	return m.User{}, errors.ErrAccessDenied
 }

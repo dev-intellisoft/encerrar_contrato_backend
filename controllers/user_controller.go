@@ -25,11 +25,26 @@ func CreateUser(c *fiber.Ctx) error {
 func Me(c *fiber.Ctx) error {
 	var user models.User
 	userId := utils.GetUserID(c.Locals("user"))
+	if utils.IsAgency(c.Locals("user")) {
+		var agency models.Agency
+		if err := database.DB.Where("id = ?", userId).First(&agency).Error; err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "cannot find agency",
+			})
+		}
+		return c.JSON(models.User{
+			ID:        agency.ID,
+			FirstName: "Imobilaria",
+			LastName:  agency.Name,
+			Email:     agency.Login,
+			Agency:    agency.Name,
+		})
+	}
 	if err := database.DB.Where("id = ?", userId).First(&user).Error; err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot find user",
 		})
 	}
-	user.Password = "*********************************"
+	user.Password = "****************"
 	return c.Status(fiber.StatusOK).JSON(user)
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 
 	"ec.com/auth"
 	"ec.com/database"
@@ -137,8 +138,9 @@ func main() {
 	routes.UserRoutes(app)
 	routes.SolicitationRoutes(app)
 	routes.AgencyRoutes(app)
+	port := os.Getenv("PORT")
 
-	if err := app.Listen(":3002"); err != nil {
+	if err := app.Listen(":" + port); err != nil {
 		println(err.Error())
 	}
 }

@@ -70,9 +70,12 @@ func CreateSolicitation(c *fiber.Ctx) error {
 	body = bytes.ReplaceAll(body, []byte("{{agency}}"), []byte("Encerrar Contrato"))
 	body = bytes.ReplaceAll(body, []byte("{{year}}"), []byte(time.Now().Format("2006")))
 
-	if err := pkg.SendMail(solicitation.Customer.Email, "Encerrar Contrato | Recebemos sua solicitação.", string(body)); err != nil {
+	id, err := pkg.SendMail(solicitation.Customer.Email, "Encerrar Contrato | Recebemos sua solicitação.", string(body))
+	if err != nil {
 		println(err.Error())
 	}
+
+	fmt.Println(string(id))
 
 	return c.Status(fiber.StatusCreated).JSON(solicitation)
 }
@@ -207,6 +210,9 @@ func DeleteSolicitation(c *fiber.Ctx) error {
 }
 
 func SendSolicitation(c *fiber.Ctx) error {
+	var url string = os.Getenv("BASE_URL")
+	var agencyId = utils.GetAgencyId(c.Locals("user"))
+
 	var data struct {
 		Email string `json:"email"`
 		Name  string `json:"name"`
@@ -234,13 +240,16 @@ func SendSolicitation(c *fiber.Ctx) error {
 	body = bytes.ReplaceAll(body, []byte("{{name}}"), []byte(data.Name))
 	body = bytes.ReplaceAll(body, []byte("{{agency}}"), []byte("Encerrar Contrato"))
 	body = bytes.ReplaceAll(body, []byte("{{year}}"), []byte(time.Now().Format("2006")))
-	body = bytes.ReplaceAll(body, []byte("{{link}}"), []byte("http://localhost:3002/#/register"))
+	body = bytes.ReplaceAll(body, []byte("{{link}}"), []byte(fmt.Sprintf("%s/#/register/%s", url, agencyId)))
 
-	if err := pkg.SendMail(data.Email, "Encerrar Contrato | Solicitação de informações para encerramento de contrato.", string(body)); err != nil {
+	id, err := pkg.SendMail(data.Email, "Encerrar Contrato | Solicitação de informações para encerramento de contrato.", string(body))
+	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error":   true,
 			"details": err.Error(),
 		})
 	}
+	fmt.Println(id)
+	fmt.Println("Solicitation encontrado com sucesso!")
 	return c.Status(fiber.StatusOK).JSON(data)
 }
