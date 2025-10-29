@@ -6,5 +6,5 @@ import (
 )
 
 func RegistrationRoutes(app *fiber.App) {
-	app.Post("/registration", controllers.CustomerCreateSolicitation)
+	app.Post("/registration/:agency_id", controllers.CustomerCreateSolicitation)
 }
