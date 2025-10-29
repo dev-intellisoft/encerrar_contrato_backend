@@ -21,14 +21,15 @@ func GetSolicitationById(id uuid.UUID) (m.Solicitation, error) {
 }
 
 func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
-	//var agency string = utils.GetAgency(c.Locals("user"))
-	var agency string = "encerrar"
-	solicitation.Agency = agency
 	var customer m.Customer
 	exists := false
 	_ = database.DB.Where("email = ?", solicitation.Customer.Email).First(&customer).Scan(&customer)
 	if customer.ID != uuid.Nil {
 		exists = true
+		//update customer
+		if err := database.DB.Where("email = ?", solicitation.Customer.Email).Updates(&solicitation.Customer).Error; err != nil {
+			println(err.Error())
+		}
 	}
 
 	if !exists {
@@ -68,12 +69,12 @@ func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
 	fmt.Println("Solicitation created and e-mail sent!")
 	fmt.Println("Let's charge the customer!")
 
-	res, err := pkg.Charge(solicitation)
-	if err != nil {
-		println(err.Error())
-	}
-
-	solicitation.PIX = res
+	//res, err := pkg.Charge(solicitation)
+	//if err != nil {
+	//	println(err.Error())
+	//}
+	//
+	//solicitation.PIX = res
 
 	return solicitation, nil
 }
