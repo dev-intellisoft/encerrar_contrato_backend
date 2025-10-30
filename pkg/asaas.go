@@ -249,9 +249,11 @@ func CreatePIX(ASAASPayment m.ASAASPayment) (m.ASAASPixResponse, error) {
 		return ASAASPixResponse, err
 	}
 
+	fmt.Print(string(body))
+
 	if err := json.Unmarshal(body, &ASAASPixResponse); err != nil {
 		fmt.Println("CreatePIX:json.Unmarshal:", err.Error())
-		return ASAASPixResponse, err
+		//return ASAASPixResponse, err
 	}
 
 	return ASAASPixResponse, nil

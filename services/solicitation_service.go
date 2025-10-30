@@ -65,9 +65,9 @@ func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
 	}
 
 	fmt.Println(id)
-
-	fmt.Println("Solicitation created and e-mail sent!")
-	fmt.Println("Let's charge the customer!")
+	//
+	//fmt.Println("Solicitation created and e-mail sent!")
+	//fmt.Println("Let's charge the customer!")
 
 	//res, err := pkg.Charge(solicitation)
 	//if err != nil {

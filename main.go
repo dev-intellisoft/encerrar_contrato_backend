@@ -102,6 +102,7 @@ func main() {
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 	}))
 	routes.RegistrationRoutes(app)
+	routes.PaymentRoutes(app)
 
 	app.Static("/", "./public")
 
