@@ -2,7 +2,6 @@ package services
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"time"
 
@@ -41,6 +40,20 @@ func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
 	solicitation.CustomerID = customer.ID
 	solicitation.Customer = customer
 
+	if solicitation.Customer.ASAASID == "" {
+		asaasCustomer, err := pkg.CreateCustomer(solicitation)
+		if err != nil {
+			println(err.Error())
+		}
+		solicitation.Customer.ASAASID = asaasCustomer.ID
+	} else {
+		asaasCustomer, err := pkg.UpdateCustomer(solicitation)
+		if err != nil {
+			println(err.Error())
+		}
+		solicitation.Customer.ASAASID = asaasCustomer.ID
+	}
+
 	if err := database.DB.Create(&solicitation).Scan(&solicitation).Error; err != nil {
 		return m.Solicitation{}, err
 	}
@@ -59,22 +72,10 @@ func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
 	body = bytes.ReplaceAll(body, []byte("{{year}}"), []byte(time.Now().Format("2006")))
 
 	//todo uncomment below for production
-	id, err := pkg.SendMail(solicitation.Customer.Email, "Encerrar Contrato | Recebemos sua solicitação.", string(body))
+	_, err = pkg.SendMail(solicitation.Customer.Email, "Encerrar Contrato | Recebemos sua solicitação.", string(body))
 	if err != nil {
 		println(err.Error())
 	}
-
-	fmt.Println(id)
-	//
-	//fmt.Println("Solicitation created and e-mail sent!")
-	//fmt.Println("Let's charge the customer!")
-
-	//res, err := pkg.Charge(solicitation)
-	//if err != nil {
-	//	println(err.Error())
-	//}
-	//
-	//solicitation.PIX = res
 
 	return solicitation, nil
 }

@@ -70,6 +70,57 @@ type ASAASCreditCardHolderInfo struct {
 	MobilePhone   string `json:"mobilePhone"`
 }
 
+func UpdateCustomer(solicitation m.Solicitation) (m.ASAASCustomer, error) {
+	ASAASCustomer := m.ASAASCustomer{}
+
+	url := fmt.Sprintf("%s/v3/customers/%s", os.Getenv("ASAAS_URL"), solicitation.Customer.ASAASID)
+	data := map[string]interface{}{
+		"name":                 solicitation.Customer.Name,
+		"cpfCnpj":              solicitation.Customer.CPF,
+		"email":                solicitation.Customer.Email,
+		"phone":                solicitation.Customer.Phone,
+		"mobilePhone":          solicitation.Customer.Phone,
+		"address":              solicitation.Address.Street,
+		"addressNumber":        solicitation.Address.Number,
+		"complement":           solicitation.Address.Complement,
+		"province":             solicitation.Address.State,
+		"postalCode":           solicitation.Address.ZipCode,
+		"externalReference":    solicitation.Customer.ID,
+		"notificationDisabled": false,
+		"additionalEmails":     solicitation.Customer.Email,
+		"municipalInscription": "",
+		"stateInscription":     "",
+		"observations":         "",
+		"groupName":            nil,
+		"company":              nil,
+		"foreignCustomer":      false,
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("CreateCustomer:json.Marshal:", err.Error())
+		return ASAASCustomer, err
+	}
+
+	req, _ := http.NewRequest("PUT", url, bytes.NewBuffer(jsonData))
+
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("content-type", "application/json")
+	req.Header.Add("access_token", os.Getenv("ASAAS_TOKEN"))
+
+	res, _ := http.DefaultClient.Do(req)
+
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	if err := json.Unmarshal(body, &ASAASCustomer); err != nil {
+		fmt.Println("CreateCustomer:json.Unmarshal:", err.Error())
+		return ASAASCustomer, err
+	}
+
+	return ASAASCustomer, nil
+}
+
 func CreateCustomer(solicitation m.Solicitation) (m.ASAASCustomer, error) {
 	ASAASCustomer := m.ASAASCustomer{}
 	data := map[string]interface{}{
