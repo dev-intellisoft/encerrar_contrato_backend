@@ -9,9 +9,6 @@ import (
 )
 
 func CustomerCreateSolicitation(c *fiber.Ctx) error {
-	//var test models.Solicitation
-	//database.DB.Where("id = ?", "652b65c1-7438-4ebc-866d-92f8f2aaaeed").First(&test)
-	//return c.Status(fiber.StatusCreated).JSON(test)
 	var agency models.Agency
 	agencyId, err := uuid.Parse(c.Params("agency_id", ""))
 	if agencyId == uuid.Nil {
