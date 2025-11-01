@@ -7,6 +7,7 @@ import (
 
 type Customer struct {
 	ID        uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	ASAASID   string    `json:"asaas_id" gorm:"asaas_id"`
 	Name      string    `json:"name"`
 	CPF       string    `gorm:"uniqueIndex" json:"cpf"`
 	BirthDate string    `json:"birth_date"` // you may want time.Time if you need date operations
