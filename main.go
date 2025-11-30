@@ -139,6 +139,8 @@ func main() {
 	routes.UserRoutes(app)
 	routes.SolicitationRoutes(app)
 	routes.AgencyRoutes(app)
+	routes.ServiceRoutes(app)
+
 	port := os.Getenv("PORT")
 
 	if err := app.Listen(":" + port); err != nil {

@@ -9,3 +9,4 @@ grs
 .env.development
 .env.production
 data/
+uploads/

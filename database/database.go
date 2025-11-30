@@ -32,6 +32,9 @@ func Connect() {
 	db.AutoMigrate(&models.User{})
 	db.AutoMigrate(&models.Solicitation{})
 	db.AutoMigrate(&models.Agency{})
+	db.AutoMigrate(&models.Service{})
+
+	SeedService(db)
 	SeedUser(db)
 
 	DB = db

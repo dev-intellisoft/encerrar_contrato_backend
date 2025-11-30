@@ -166,10 +166,10 @@ func CreateCustomer(solicitation m.Solicitation) (m.ASAASCustomer, error) {
 	defer res.Body.Close()
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		fmt.Println("CreateCustomer:io.ReadAll:", err.Error())
+		// fmt.Println("CreateCustomer:io.ReadAll:", err.Error())
 		return ASAASCustomer, err
 	}
-	fmt.Println("CreateCustomer:io.ReadAll:", string(body))
+	// fmt.Println("CreateCustomer:io.ReadAll:", string(body))
 	if err := json.Unmarshal(body, &ASAASCustomer); err != nil {
 		fmt.Println("CreateCustomer:json.Unmarshal:", err.Error())
 		return ASAASCustomer, err

@@ -1,6 +1,9 @@
 package controllers
 
 import (
+	"fmt"
+	"os"
+
 	"ec.com/database"
 	"ec.com/models"
 	"github.com/gofiber/fiber/v2"
@@ -14,10 +17,29 @@ func GetAgencies(c *fiber.Ctx) error {
 }
 
 func CreateAgency(c *fiber.Ctx) error {
-	var agency models.Agency
-	if err := c.BodyParser(&agency); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot parse JSON"})
+	fmt.Println("===========>")
+	agency := models.Agency{
+		Name:     c.FormValue("name"),
+		Login:    c.FormValue("login"),
+		Password: c.FormValue("password"),
 	}
+	//if err := c.BodyParser(&agency); err != nil {
+	//	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot parse JSON"})
+	//}
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		fmt.Println(err)
+		return c.Status(fiber.StatusBadRequest).SendString("Missing file")
+	}
+
+	if err := os.MkdirAll("./uploads", os.ModePerm); err != nil {
+		return c.Status(500).SendString("Cannot create uploads folder")
+	}
+
+	fmt.Println(file)
+
+	return c.Status(fiber.StatusOK).JSON(agency)
 
 	if agency.Name == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "agency name is required"})
@@ -39,6 +61,11 @@ func CreateAgency(c *fiber.Ctx) error {
 
 	if err := database.DB.Create(&agency).Error; err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot create agency", "details": err.Error()})
+	}
+
+	filePath := fmt.Sprintf("./uploads/%s", agency.ID)
+	if err := c.SaveFile(file, filePath); err != nil {
+		return c.Status(500).SendString("Failed to save file")
 	}
 
 	return c.JSON(agency)
