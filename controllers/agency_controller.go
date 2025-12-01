@@ -65,14 +65,31 @@ func CreateAgency(c *fiber.Ctx) error {
 }
 
 func UpdateAgency(c *fiber.Ctx) error {
-	var agency models.Agency
-	if err := database.DB.First(&agency, c.Params("id")).Error; err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot find agency", "details": err.Error()})
+	agencyId, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot parse agency id", "details": err.Error()})
 	}
-	if err := c.BodyParser(&agency); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot parse JSON", "details": err.Error()})
+	agency := models.Agency{
+		ID:       agencyId,
+		Name:     c.FormValue("name"),
+		Login:    c.FormValue("login"),
+		Password: c.FormValue("password"),
 	}
-	if err := database.DB.Save(&agency).Error; err != nil {
+
+	file, err := c.FormFile("files")
+	if err == nil {
+		if err := os.MkdirAll("./uploads/angecies", os.ModePerm); err != nil {
+			return c.Status(fiber.StatusNotFound).SendString("Cannot create uploads folder")
+		}
+		ext := filepath.Ext(file.Filename)
+		agency.Image = fmt.Sprintf("%s%s", "/angecies/", agency.ID.String()+ext)
+
+		filePath := fmt.Sprintf("./uploads/angecies/%s", agency.ID.String()+ext)
+		if err := c.SaveFile(file, filePath); err != nil {
+			return c.Status(500).SendString("Failed to save file")
+		}
+	}
+	if err := database.DB.Where("id = ?", agencyId).Save(&agency).Error; err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot update agency", "details": err.Error()})
 	}
 	return c.JSON(agency)
