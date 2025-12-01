@@ -13,6 +13,7 @@ type User struct {
 	Password  string    `json:"password"`
 	Phone     string    `json:"phone"`
 	Agency    string    `json:"agency"`
+	Avatar    string    `json:"avatar"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {

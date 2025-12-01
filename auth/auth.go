@@ -30,6 +30,7 @@ func GetUserWithPassword(username, password string) (m.User, error) {
 				ID:     agency.ID,
 				Agency: agency.Name,
 				Email:  agency.Login,
+				Avatar: agency.Image,
 			}, nil
 		}
 	}

@@ -85,10 +85,12 @@ func main() {
 			ID     uuid.UUID
 			Agency string
 			Email  string
+			Avatar string
 		}{
 			ID:     user.ID,
 			Agency: user.Agency,
 			Email:  user.Email,
+			Avatar: user.Avatar,
 		})
 
 		log.Println("Auth success:", string(userJSON))
