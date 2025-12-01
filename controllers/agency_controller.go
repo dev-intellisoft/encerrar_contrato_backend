@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"ec.com/database"
 	"ec.com/models"
@@ -12,60 +13,52 @@ import (
 
 func GetAgencies(c *fiber.Ctx) error {
 	var agencies []models.Agency
-	database.DB.Find(&agencies)
+	if err := database.DB.Find(&agencies).Error; err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot find agencies", "details": err.Error()})
+	}
 	return c.JSON(agencies)
 }
 
 func CreateAgency(c *fiber.Ctx) error {
-	fmt.Println("===========>")
 	agency := models.Agency{
+		ID:       uuid.New(),
 		Name:     c.FormValue("name"),
 		Login:    c.FormValue("login"),
 		Password: c.FormValue("password"),
 	}
-	//if err := c.BodyParser(&agency); err != nil {
-	//	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot parse JSON"})
-	//}
 
-	file, err := c.FormFile("file")
-	if err != nil {
-		fmt.Println(err)
-		return c.Status(fiber.StatusBadRequest).SendString("Missing file")
+	file, err := c.FormFile("files")
+	if err == nil {
+		if err := os.MkdirAll("./uploads/angecies", os.ModePerm); err != nil {
+			return c.Status(fiber.StatusNotFound).SendString("Cannot create uploads folder")
+		}
+		ext := filepath.Ext(file.Filename)
+		agency.Image = fmt.Sprintf("%s%s", "/angecies/", agency.ID.String()+ext)
+
+		filePath := fmt.Sprintf("./uploads/angecies/%s", agency.ID.String()+ext)
+		if err := c.SaveFile(file, filePath); err != nil {
+			return c.Status(500).SendString("Failed to save file")
+		}
 	}
 
-	if err := os.MkdirAll("./uploads", os.ModePerm); err != nil {
-		return c.Status(500).SendString("Cannot create uploads folder")
-	}
+	// if agency.Name == "" {
+	// 	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "agency name is required"})
+	// }
 
-	fmt.Println(file)
+	// if agency.Login == "" {
+	// 	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "agency login is required"})
+	// }
 
-	return c.Status(fiber.StatusOK).JSON(agency)
+	// if agency.Password == "" {
+	// 	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "agency password is required"})
+	// }
 
-	if agency.Name == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "agency name is required"})
-	}
-
-	if agency.Login == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "agency login is required"})
-	}
-
-	if agency.Password == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "agency password is required"})
-	}
-
-	if agency.Password == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "agency password is required"})
-	}
-
-	agency.ID = uuid.New()
+	// if agency.Password == "" {
+	// 	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "agency password is required"})
+	// }
 
 	if err := database.DB.Create(&agency).Error; err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot create agency", "details": err.Error()})
-	}
-
-	filePath := fmt.Sprintf("./uploads/%s", agency.ID)
-	if err := c.SaveFile(file, filePath); err != nil {
-		return c.Status(500).SendString("Failed to save file")
 	}
 
 	return c.JSON(agency)

@@ -105,6 +105,7 @@ func main() {
 	routes.PaymentRoutes(app)
 
 	app.Static("/", "./public")
+	app.Static("/angecies", "./uploads/angecies")
 
 	app.Post("/token", func(c *fiber.Ctx) error {
 		fasthttpadaptor.NewFastHTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
