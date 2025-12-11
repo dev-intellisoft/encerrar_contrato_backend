@@ -26,7 +26,7 @@ func CustomerCreateSolicitation(c *fiber.Ctx) error {
 
 	var solicitation models.Solicitation
 	if err := c.BodyParser(&solicitation); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot parse JSON"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot parse JSON", "details": err.Error()})
 	}
 
 	solicitation.AgencyId = agency.ID

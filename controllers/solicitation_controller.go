@@ -97,6 +97,13 @@ func GetSolicitation(c *fiber.Ctx) error {
 				"details": err.Error(),
 			})
 		}
+
+		for i := 0; i < len(solicitation); i++ {
+			var a models.Agency
+			database.DB.Where("id = ?", solicitation[i].AgencyId).First(&a)
+			fmt.Println(a)
+			solicitation[i].AgencyLogo = a.Image
+		}
 	}
 
 	return c.Status(fiber.StatusOK).JSON(solicitation)

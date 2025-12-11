@@ -7,6 +7,18 @@ import (
 	"github.com/google/uuid"
 )
 
+func GetAgencyLogo(c *fiber.Ctx) error {
+	agencyID, err := uuid.Parse(c.Params("agency_id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+	var agency models.Agency
+	if err := database.DB.Where("id = ?", agencyID).First(&agency).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.Status(fiber.StatusOK).JSON(agency.Image)
+}
+
 func GetServices(c *fiber.Ctx) error {
 	var services []models.Service
 
