@@ -33,6 +33,7 @@ func Connect() {
 	db.AutoMigrate(&models.Solicitation{})
 	db.AutoMigrate(&models.Agency{})
 	db.AutoMigrate(&models.Service{})
+	db.AutoMigrate(&models.SolicitationItem{})
 
 	SeedService(db)
 	SeedUser(db)

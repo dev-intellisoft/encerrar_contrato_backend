@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	//"fmt"
@@ -10,6 +11,8 @@ import (
 	"ec.com/database"
 	"ec.com/models"
 	"ec.com/pkg"
+	"ec.com/pkg/websocket"
+	"ec.com/services"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -80,17 +83,42 @@ func ProcessPixPayment(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot parse solicitation_id"})
 	}
 
-	if err := database.DB.Where("id = ?", solicitationId).First(&solicitation).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+	fmt.Println(solicitationId)
+
+	solicitation, err = services.GetSolicitationById(solicitationId)
+	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "solicitation not found"})
 	}
 
-	_ = database.DB.Where("id = ?", solicitation.CustomerID).First(&solicitation.Customer)
-	_ = database.DB.Where("id = ?", solicitation.AddressID).First(&solicitation.Address)
-
 	response, err := pkg.Charge(solicitation)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot charge customer"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot charge customer", "details": err.Error()})
+	}
+
+	solicitation.ASAASPaymentID = response.PaymentID
+
+	if err = services.UpdateSolicitation(solicitation); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot update solicitation", "details": err.Error()})
 	}
 
 	return c.Status(fiber.StatusOK).JSON(response)
+}
+
+func ConfirmPayment(c *fiber.Ctx) error {
+	var body models.ASAASWebhookEvent
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot parse JSON"})
+	}
+
+	response, err := services.ConfirmPayment(body)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot confirm payment", "details": err.Error()})
+	}
+
+	websocket.SendMessageToClient(response.ID.String(), models.SocketMessage{
+		Event: "PAYMENT_CONFIRMED",
+		Data:  []byte(`{"hello": "world"}`),
+	})
+
+	return c.Status(fiber.StatusOK).JSON("OK")
 }

@@ -20,6 +20,7 @@ func CustomerCreateSolicitation(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "You need to provide a valid agency_id"})
 	}
 
+	//validate if the solicitation is for a valid agency
 	if database.DB.Where("id = ?", agencyId).First(&agency).Error != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "agency not found"})
 	}
@@ -27,6 +28,10 @@ func CustomerCreateSolicitation(c *fiber.Ctx) error {
 	var solicitation models.Solicitation
 	if err := c.BodyParser(&solicitation); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot parse JSON", "details": err.Error()})
+	}
+
+	if len(solicitation.Items) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "You need to provide a valid items"})
 	}
 
 	solicitation.AgencyId = agency.ID
@@ -44,6 +49,7 @@ func CustomerCreateSolicitation(c *fiber.Ctx) error {
 }
 
 func CreateAnTransferSolicitation(c *fiber.Ctx) error {
+	println("-------------------->")
 	var agency models.Agency
 	agencyId, _ := uuid.Parse(c.Params("agency_id", ""))
 	if agencyId == uuid.Nil {
@@ -82,7 +88,7 @@ func CreateAnTransferSolicitation(c *fiber.Ctx) error {
 		fileHeader, err := c.FormFile(field)
 		println(fileHeader)
 		if err != nil {
-			// if missing field, ignore
+			println(err.Error())
 			return "", nil
 		}
 		ext := filepath.Ext(fileHeader.Filename)
@@ -96,6 +102,8 @@ func CreateAnTransferSolicitation(c *fiber.Ctx) error {
 	}
 
 	files := map[string]string{}
+
+	fmt.Println(c.FormFile("files"))
 	for _, field := range []string{"document_photo", "photo_with_document", "last_invoice", "contract"} {
 		println(field)
 		if path, err := saveFile(field); err == nil && path != "" {
@@ -103,5 +111,5 @@ func CreateAnTransferSolicitation(c *fiber.Ctx) error {
 		}
 	}
 
-	return c.JSON(solicitation)
+	return c.Status(fiber.StatusCreated).JSON(solicitation)
 }

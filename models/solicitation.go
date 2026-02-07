@@ -20,8 +20,10 @@ type Solicitation struct {
 	AgencyId       uuid.UUID                 `json:"agency_id"`
 	AgencyLogo     string                    `json:"agency_logo"`
 	Service        string                    `json:"service"`
+	Items          []SolicitationItem        `json:"items" gorm:"foreignKey:SolicitationID;references:ID"`
 	PaymentType    string                    `json:"payment_type"`
 	PaymentStatus  string                    `json:"payment_status"`
+	ASAASPaymentID string                    `json:"asaas_payment_id"`
 }
 
 func (s *Solicitation) BeforeCreate(tx *gorm.DB) (err error) {

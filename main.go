@@ -10,6 +10,7 @@ import (
 	"ec.com/auth"
 	"ec.com/database"
 	m "ec.com/models"
+	"ec.com/pkg/websocket"
 	"ec.com/routes"
 	s "ec.com/storage"
 	"github.com/go-oauth2/oauth2/v4/errors"
@@ -18,6 +19,7 @@ import (
 	"github.com/go-oauth2/oauth2/v4/models"
 	"github.com/go-oauth2/oauth2/v4/server"
 	"github.com/go-oauth2/oauth2/v4/store"
+	"github.com/gofiber/contrib/socketio"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	jwtware "github.com/gofiber/jwt/v3"
@@ -33,6 +35,7 @@ func init() {
 	}
 	//pkg.InitNode()
 	database.Connect()
+	websocket.InitSocket()
 }
 
 func jwtError(c *fiber.Ctx, err error) error {
@@ -122,6 +125,8 @@ func main() {
 		return nil
 	})
 
+	app.Get("/ws/:id", socketio.New(websocket.WebSocketHandler))
+
 	app.Post("/validation/code", func(c *fiber.Ctx) error {
 		fasthttpadaptor.NewFastHTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			err := srv.HandleTokenRequest(w, r)
@@ -143,6 +148,10 @@ func main() {
 	routes.SolicitationRoutes(app)
 	routes.AgencyRoutes(app)
 	routes.ServiceRoutes(app)
+
+	app.Static("/documents", "./uploads", fiber.Static{
+		Browse: true,
+	})
 
 	port := os.Getenv("PORT")
 

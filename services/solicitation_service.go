@@ -13,7 +13,7 @@ import (
 
 func GetSolicitationById(id uuid.UUID) (m.Solicitation, error) {
 	var solicitation m.Solicitation
-	if err := database.DB.Preload("Customer").Preload("Address").Where("id = ?", id).First(&solicitation).Error; err != nil {
+	if err := database.DB.Preload("Customer").Preload("Address").Preload("Items").Where("id = ?", id).First(&solicitation).Error; err != nil {
 		return solicitation, err
 	}
 	return solicitation, nil
@@ -22,6 +22,8 @@ func GetSolicitationById(id uuid.UUID) (m.Solicitation, error) {
 func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
 	var customer m.Customer
 	exists := false
+
+	//check if the email is associtated with an existing customer
 	_ = database.DB.Where("email = ?", solicitation.Customer.Email).First(&customer).Scan(&customer)
 	if customer.ID != uuid.Nil {
 		exists = true
@@ -31,6 +33,7 @@ func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
 		}
 	}
 
+	//if the customer does not exist, create a new one
 	if !exists {
 		if err := database.DB.Create(&solicitation.Customer).Scan(&customer).Error; err != nil {
 			return m.Solicitation{}, err
@@ -40,6 +43,8 @@ func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
 	solicitation.CustomerID = customer.ID
 	solicitation.Customer = customer
 
+	//create or update ASAAS customer
+	//if the customer does not have an ASAASID, create a new one
 	if solicitation.Customer.ASAASID == "" {
 		asaasCustomer, err := pkg.CreateCustomer(solicitation)
 		if err != nil {
@@ -47,6 +52,7 @@ func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
 		}
 		solicitation.Customer.ASAASID = asaasCustomer.ID
 	} else {
+		//if the customer already has an ASAASID, update it
 		asaasCustomer, err := pkg.UpdateCustomer(solicitation)
 		if err != nil {
 			println(err.Error())
@@ -56,6 +62,10 @@ func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
 
 	if err := database.DB.Create(&solicitation).Scan(&solicitation).Error; err != nil {
 		return m.Solicitation{}, err
+	}
+	for _, item := range solicitation.Items {
+		item.SolicitationID = solicitation.ID
+		database.DB.Create(&item)
 	}
 
 	solicitation, err := GetSolicitationById(solicitation.ID)
@@ -75,6 +85,27 @@ func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
 	_, err = pkg.SendMail(solicitation.Customer.Email, "Encerrar Contrato | Recebemos sua solicitação.", string(body))
 	if err != nil {
 		println(err.Error())
+	}
+
+	return solicitation, nil
+}
+
+func UpdateSolicitation(solicitation m.Solicitation) error {
+	if err := database.DB.Where("id = ?", solicitation.ID).Updates(&solicitation).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func ConfirmPayment(body m.ASAASWebhookEvent) (m.Solicitation, error) {
+	var solicitation m.Solicitation
+	if err := database.DB.Where("asaas_payment_id = ?", body.Payment.ID).Preload("Customer").Preload("Address").Preload("Items").First(&solicitation).Error; err != nil {
+		return m.Solicitation{}, err
+	}
+
+	solicitation.PaymentStatus = "PAID"
+	if err := UpdateSolicitation(solicitation); err != nil {
+		return m.Solicitation{}, err
 	}
 
 	return solicitation, nil

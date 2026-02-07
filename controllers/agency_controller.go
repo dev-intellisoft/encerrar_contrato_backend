@@ -41,22 +41,6 @@ func CreateAgency(c *fiber.Ctx) error {
 		}
 	}
 
-	// if agency.Name == "" {
-	// 	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "agency name is required"})
-	// }
-
-	// if agency.Login == "" {
-	// 	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "agency login is required"})
-	// }
-
-	// if agency.Password == "" {
-	// 	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "agency password is required"})
-	// }
-
-	// if agency.Password == "" {
-	// 	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "agency password is required"})
-	// }
-
 	if err := database.DB.Create(&agency).Error; err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot create agency", "details": err.Error()})
 	}

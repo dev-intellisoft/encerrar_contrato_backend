@@ -11,6 +11,7 @@ import (
 
 	m "ec.com/models"
 	"github.com/go-oauth2/oauth2/v4/errors"
+	"github.com/google/uuid"
 )
 
 type ASAASCreditCardPaymentResponse struct {
@@ -219,14 +220,14 @@ func ASAASGetCustomerIdByEmail(email string) (string, error) {
 	return "", errors.New("customer not found")
 }
 
-func Bill(customerId string) (m.ASAASPayment, error) {
+func Bill(customerId string, value float64, solitationId uuid.UUID) (m.ASAASPayment, error) {
 	ASAASPayment := m.ASAASPayment{}
 	url := fmt.Sprintf("%s/v3/payments", os.Getenv("ASAAS_URL"))
 	data := map[string]interface{}{
 		"billingType": "PIX",
-		"value":       10,
+		"value":       value,
 		"dueDate":     time.Now().Format("2006-01-02"),
-		"description": "12345",
+		"description": solitationId.String(),
 		"customer":    customerId,
 	}
 	jsonData, err := json.Marshal(data)
@@ -257,11 +258,24 @@ func Bill(customerId string) (m.ASAASPayment, error) {
 		fmt.Println("Bill:json.Unmarshal:", err.Error())
 		return ASAASPayment, err
 	}
+
+	fmt.Println("Bill:ASAASPayment:", ASAASPayment)
+
 	return ASAASPayment, nil
 }
 
 func Charge(solicitation m.Solicitation) (m.ASAASPixResponse, error) {
 	var PIX m.ASAASPixResponse
+
+	var total float64 = 0
+	for _, item := range solicitation.Items {
+		total += item.Price
+	}
+
+	if total < 5 {
+		return PIX, errors.New("total value is less than 5")
+	}
+
 	customerId, err := ASAASGetCustomerIdByEmail(solicitation.Customer.Email)
 	if err != nil && err.Error() != "customer not found" {
 		fmt.Println("Charge:ASAASGetCustomerIdByEmail:", err.Error())
@@ -281,7 +295,10 @@ func Charge(solicitation m.Solicitation) (m.ASAASPixResponse, error) {
 	if customerId == "" {
 		return PIX, errors.New("customer not found")
 	}
-	ASAASPayment, err := Bill(customerId)
+
+	//todo fix this
+	// ASAASPayment, err := Bill(customerId, solicitation.Value, solicitation.ID)
+	ASAASPayment, err := Bill(customerId, total, solicitation.ID)
 	if err != nil {
 		fmt.Println("Charge:Bill:ASAASPayment", err.Error())
 		return PIX, err
@@ -291,6 +308,7 @@ func Charge(solicitation m.Solicitation) (m.ASAASPixResponse, error) {
 		fmt.Println("Charge:CreatePIX:PIX", err.Error())
 		return PIX, err
 	}
+	PIX.PaymentID = ASAASPayment.ID
 	return PIX, nil
 }
 
