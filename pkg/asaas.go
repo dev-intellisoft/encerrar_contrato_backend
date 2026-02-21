@@ -266,7 +266,6 @@ func Bill(customerId string, value float64, solitationId uuid.UUID) (m.ASAASPaym
 
 func Charge(solicitation m.Solicitation) (m.ASAASPixResponse, error) {
 	var PIX m.ASAASPixResponse
-
 	var total float64 = 0
 	for _, item := range solicitation.Items {
 		total += item.Price
@@ -303,39 +302,40 @@ func Charge(solicitation m.Solicitation) (m.ASAASPixResponse, error) {
 		fmt.Println("Charge:Bill:ASAASPayment", err.Error())
 		return PIX, err
 	}
-	PIX, err = CreatePIX(ASAASPayment)
+	PIX, err = GeneratePIXQRCode(ASAASPayment)
 	if err != nil {
-		fmt.Println("Charge:CreatePIX:PIX", err.Error())
+		fmt.Println("Charge:GeneratePIXQRCode:PIX", err.Error())
 		return PIX, err
 	}
 	PIX.PaymentID = ASAASPayment.ID
+	PIX.Value = total
 	return PIX, nil
 }
 
-func CreatePIX(ASAASPayment m.ASAASPayment) (m.ASAASPixResponse, error) {
+func GeneratePIXQRCode(ASAASPayment m.ASAASPayment) (m.ASAASPixResponse, error) {
 	ASAASPixResponse := m.ASAASPixResponse{}
 	url := fmt.Sprintf("%s/v3/payments/%s/pixQrCode", os.Getenv("ASAAS_URL"), ASAASPayment.ID)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		fmt.Println("CreatePIX:http.NewRequest:", err.Error())
+		fmt.Println("GeneratePIXQRCode:http.NewRequest:", err.Error())
 		return ASAASPixResponse, err
 	}
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("access_token", os.Getenv("ASAAS_TOKEN"))
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Println("CreatePIX:http.DefaultClient.Do:", err.Error())
+		fmt.Println("GeneratePIXQRCode:http.DefaultClient.Do:", err.Error())
 		return ASAASPixResponse, err
 	}
 	defer res.Body.Close()
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		fmt.Println("CreatePIX:io.ReadAll:", err.Error())
+		fmt.Println("GeneratePIXQRCode:io.ReadAll:", err.Error())
 		return ASAASPixResponse, err
 	}
 	if err := json.Unmarshal(body, &ASAASPixResponse); err != nil {
-		fmt.Println("CreatePIX:json.Unmarshal:", err.Error())
-		//return ASAASPixResponse, err
+		fmt.Println("GeneratePIXQRCode:json.Unmarshal:", err.Error())
+		return ASAASPixResponse, err
 	}
 	return ASAASPixResponse, nil
 }

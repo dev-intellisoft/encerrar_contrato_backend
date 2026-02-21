@@ -2,11 +2,7 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
 	"time"
-
-	//"fmt"
-	//"time"
 
 	"ec.com/database"
 	"ec.com/models"
@@ -40,17 +36,15 @@ func ProcessPayment(c *fiber.Ctx) error {
 
 func ProcessCreditCardPayment(c *fiber.Ctx) error {
 	request := models.ASAASCreditCardPaymentRequest{}
-	var solicitation models.Solicitation
 	solicitationId, err := uuid.Parse(c.Params("solicitation_id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot parse solicitation_id"})
 	}
 
-	if err := database.DB.Where("id = ?", solicitationId).First(&solicitation).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+	solicitation, err := services.GetSolicitationById(solicitationId)
+	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "solicitation not found"})
 	}
-
-	_ = database.DB.Where("id = ?", solicitation.CustomerID).First(&solicitation.Customer)
 
 	if err := c.BodyParser(&request); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot parse JSON"})
@@ -60,17 +54,30 @@ func ProcessCreditCardPayment(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot get customer id"})
 	}
+
+	request.Value = 0
+	for _, item := range solicitation.Items {
+		request.Value += item.Price
+	}
+
+	if request.Value < 5 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "total price should be greater than 5"})
+	}
+
 	request.Customer = customerId
 	request.BillingType = "CREDIT_CARD"
-	request.Value = 10
 	request.DueDate = time.Now().Format("2006-01-02")
 	request.Description = solicitation.ID.String()
-	request.CreditCard = request.CreditCard
-	request.CreditCardHolderInfo = request.CreditCardHolderInfo
 
 	response, err := pkg.CreditCardPayment(request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot charge customer"})
+	}
+
+	if response.Status == "CONFIRMED" {
+		solicitation.PaymentStatus = "PAID"
+		solicitation.PaymentType = "CREDIT_CARD"
+		_ = database.DB.Where("id = ?", solicitation.ID).Updates(&solicitation)
 	}
 
 	return c.Status(fiber.StatusOK).JSON(response)
@@ -82,8 +89,6 @@ func ProcessPixPayment(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot parse solicitation_id"})
 	}
-
-	fmt.Println(solicitationId)
 
 	solicitation, err = services.GetSolicitationById(solicitationId)
 	if err != nil {

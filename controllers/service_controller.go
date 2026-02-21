@@ -16,7 +16,11 @@ func GetAgencyLogo(c *fiber.Ctx) error {
 	if err := database.DB.Where("id = ?", agencyID).First(&agency).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
-	return c.Status(fiber.StatusOK).JSON(agency.Image)
+	return c.Status(fiber.StatusOK).JSON(models.Agency{
+		ID:    agency.ID,
+		Image: agency.Image,
+		Name:  agency.Name,
+	})
 }
 
 func GetServices(c *fiber.Ctx) error {
