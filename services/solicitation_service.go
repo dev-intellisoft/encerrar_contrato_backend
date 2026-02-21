@@ -20,6 +20,11 @@ func GetSolicitationById(id uuid.UUID) (m.Solicitation, error) {
 }
 
 func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
+	for i, _ := range solicitation.Items {
+		solicitation.Items[i].SolicitationID = solicitation.Items[i].ID
+		solicitation.Items[i].ID = uuid.New()
+	}
+
 	var customer m.Customer
 	exists := false
 
@@ -63,8 +68,8 @@ func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
 	if err := database.DB.Create(&solicitation).Scan(&solicitation).Error; err != nil {
 		return m.Solicitation{}, err
 	}
+
 	for _, item := range solicitation.Items {
-		item.SolicitationID = solicitation.ID
 		database.DB.Create(&item)
 	}
 

@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -8,6 +10,7 @@ import (
 
 type Solicitation struct {
 	ID             uuid.UUID                 `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	Protocol       int64                     `json:"protocol"`
 	CustomerID     uuid.UUID                 `json:"customer_id"`
 	Customer       Customer                  `gorm:"foreignKey:CustomerID;references:ID" json:"customer"`
 	AddressID      uuid.UUID                 `json:"address_id"`
@@ -27,6 +30,9 @@ type Solicitation struct {
 }
 
 func (s *Solicitation) BeforeCreate(tx *gorm.DB) (err error) {
+	if s.Protocol == 0 {
+		s.Protocol = int64(time.Now().Unix())
+	}
 	if s.ID == uuid.Nil {
 		s.ID = uuid.New()
 	}

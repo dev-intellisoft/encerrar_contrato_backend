@@ -150,26 +150,31 @@ func StartSolicitation(c *fiber.Ctx) error {
 			"details": err.Error(),
 		})
 	}
-	err = database.DB.Where("id = ?", id).Updates(models.Solicitation{Status: 1}).Error
+
+	if err = database.DB.Preload("Customer").Preload("Address").First(&solicitation, id).Error; err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   "cannot find solicitation",
+			"details": err.Error(),
+		})
+	}
+
+	if solicitation.Status >= 1 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   true,
+			"details": "solicitation already started",
+		})
+	}
+
+	solicitation.Status = 1
+
+	err = database.DB.Where(models.Solicitation{ID: id}).Updates(&solicitation).Error
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error":   true,
 			"details": err.Error(),
 		})
 	}
-	if err := database.DB.Preload("Customer").Preload("Address").First(&solicitation, "id = ?", id).Scan(&solicitation).Error; err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":   "cannot find solicitation",
-			"details": err.Error(),
-		})
-	}
-	//solicitation, err = getSolicitationById(id)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":   "cannot find solicitation",
-			"details": err.Error(),
-		})
-	}
+
 	return c.Status(fiber.StatusOK).JSON(solicitation)
 }
 
