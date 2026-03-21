@@ -1,10 +1,13 @@
 #!/bin/sh
+
+PROCESS_NAME=encerrar_contrato
+
 cd /Users/wellington/Developer/encerrar/encerrar_contrato/
 flutter build web --release --dart-define=ENV=production --output /Users/wellington/Developer/encerrar/backend/public/ --base-href "/"
 cd /Users/wellington/Developer/encerrar/backend/
 
-ssh root@167.99.107.244 "pm2 stop all"
-ssh root@167.99.107.244 "pm2 delete all"
+ssh root@167.99.107.244 "pm2 stop ${PROCESS_NAME}"
+ssh root@167.99.107.244 "pm2 delete ${PROCESS_NAME}"
 
 ssh root@167.99.107.244 "rm -rf /root/public"
 
@@ -15,5 +18,5 @@ rm -rf public/assets/packages/flutter_multi_formatter/flags
 
 scp -r public root@167.99.107.244:/root
 
-ssh root@167.99.107.244 "pm2 start ./main --name encerrar_contrato"
+ssh root@167.99.107.244 "pm2 start ./main --name ${PROCESS_NAME}"
 
