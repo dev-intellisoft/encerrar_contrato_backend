@@ -15,6 +15,10 @@ func Connect() {
 		println(err.Error())
 		panic("Failed to connect to database")
 	}
+	if err := db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`).Error; err != nil {
+		println(err.Error())
+		panic("Failed to enable uuid-ossp extension")
+	}
 	//db.Migrator().DropTable(&models.OAuth2Token{}, &models.Address{}, &models.Customer{}, &models.User{}, &models.Solicitation{})
 	db.AutoMigrate(&models.OAuth2Token{})
 	db.AutoMigrate(&models.Address{})
