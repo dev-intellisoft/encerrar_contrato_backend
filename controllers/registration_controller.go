@@ -22,3 +22,7 @@ func CustomerCreateSolicitation(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusCreated).JSON(solicitation)
 }
+
+func GetRegistrationServices(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusOK).JSON([]fiber.Map{})
+}
