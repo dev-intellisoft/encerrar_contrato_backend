@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -11,6 +13,8 @@ type Solicitation struct {
 	Customer     Customer         `gorm:"foreignKey:CustomerID;references:ID" json:"customer"`
 	AddressID    uuid.UUID        `json:"address_id"`
 	Address      Address          `gorm:"foreignKey:AddressID;references:ID" json:"address"`
+	CreatedAt    time.Time        `json:"created_at"`
+	UpdatedAt    time.Time        `json:"updated_at"`
 	Agency       string           `json:"agency"`
 	Services     string           `json:"services"`
 	Status       int              `json:"status"`

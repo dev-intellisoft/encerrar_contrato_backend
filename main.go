@@ -28,7 +28,7 @@ import (
 
 func init() {
 	if err := godotenv.Load(); err != nil {
-		log.Fatal("Failed to load configuration file ")
+		log.Println("Configuration file not found, using environment defaults")
 	}
 	//pkg.InitNode()
 	database.Connect()
@@ -44,8 +44,7 @@ func jwtError(c *fiber.Ctx, err error) error {
 func main() {
 	manager := manage.NewDefaultManager()
 	manager.SetAuthorizeCodeTokenCfg(manage.DefaultAuthorizeCodeTokenCfg)
-	tokenStore := s.NewGormTokenStore(database.DB)
-	manager.MustTokenStorage(tokenStore, nil)
+	manager.MustTokenStorage(s.NewGormTokenStore(database.DB))
 	srv := server.NewDefaultServer(manager)
 	clientStore := store.NewClientStore()
 	manager.MapClientStorage(clientStore)
