@@ -8,13 +8,13 @@ import (
 
 	"ec.com/auth"
 	"ec.com/database"
-	m "ec.com/models"
 	"ec.com/routes"
-	s "ec.com/storage"
+	localmodels "ec.com/models"
+	localstorage "ec.com/storage"
 	"github.com/go-oauth2/oauth2/v4/errors"
 	"github.com/go-oauth2/oauth2/v4/generates"
 	"github.com/go-oauth2/oauth2/v4/manage"
-	"github.com/go-oauth2/oauth2/v4/models"
+	oauthmodels "github.com/go-oauth2/oauth2/v4/models"
 	"github.com/go-oauth2/oauth2/v4/server"
 	"github.com/go-oauth2/oauth2/v4/store"
 	"github.com/gofiber/fiber/v2"
@@ -44,7 +44,7 @@ func jwtError(c *fiber.Ctx, err error) error {
 func main() {
 	manager := manage.NewDefaultManager()
 	manager.SetAuthorizeCodeTokenCfg(manage.DefaultAuthorizeCodeTokenCfg)
-	manager.MustTokenStorage(s.NewGormTokenStore(database.DB))
+	manager.MustTokenStorage(localstorage.NewGormTokenStore(database.DB))
 	srv := server.NewDefaultServer(manager)
 	clientStore := store.NewClientStore()
 	manager.MapClientStorage(clientStore)
@@ -52,7 +52,7 @@ func main() {
 		generates.NewJWTAccessGenerate("auth-server", []byte("SECRET_SIGNING_KEY"), jwt.SigningMethodHS256),
 	)
 
-	clientStore.Set("encerrar", &models.Client{
+	clientStore.Set("encerrar", &oauthmodels.Client{
 		ID:     "encerrar",
 		Secret: "contract123",
 		Domain: "http://localhost",
@@ -63,7 +63,7 @@ func main() {
 	srv.SetPasswordAuthorizationHandler(func(ctx context.Context, clientID, username, password string) (string, error) {
 		log.Printf("PasswordAuthHandler: client=%s user=%s pass=%s", clientID, username, password)
 
-		var user m.User
+		var user localmodels.User
 		var err error
 
 		if len(password) == 4 {
