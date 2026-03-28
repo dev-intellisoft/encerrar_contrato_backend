@@ -11,4 +11,6 @@ func AgencyRoutes(app *fiber.App) {
 	app.Post("/agencies", controllers.CreateAgency)
 	app.Put("/agencies/:id", controllers.UpdateAgency)
 	app.Delete("/agencies/:id", controllers.DeleteAgency)
+	app.Post("/agency/registration", controllers.RegisterCloseSolicitaion)
+	app.Post("/agency/transfer", controllers.RegisterTranferSolicitaion)
 }

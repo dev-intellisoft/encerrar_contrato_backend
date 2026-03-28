@@ -175,7 +175,9 @@ func StartSolicitation(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(solicitation)
+	s, _ := services.GetSolicitationById(id)
+
+	return c.Status(fiber.StatusOK).JSON(s)
 }
 
 func EndSolicitation(c *fiber.Ctx) error {
@@ -202,8 +204,9 @@ func EndSolicitation(c *fiber.Ctx) error {
 			"details": err.Error(),
 		})
 	}
+	s, _ := services.GetSolicitationById(id)
 
-	return c.Status(fiber.StatusOK).JSON(solicitation)
+	return c.Status(fiber.StatusOK).JSON(s)
 }
 
 func DeleteSolicitation(c *fiber.Ctx) error {

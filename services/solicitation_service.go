@@ -13,9 +13,13 @@ import (
 
 func GetSolicitationById(id uuid.UUID) (m.Solicitation, error) {
 	var solicitation m.Solicitation
+	var a m.Agency
 	if err := database.DB.Preload("Customer").Preload("Address").Preload("Items").Where("id = ?", id).First(&solicitation).Error; err != nil {
 		return solicitation, err
 	}
+	database.DB.Where("id = ?", solicitation.AgencyId).First(&a)
+	solicitation.Agency = a.Name
+	solicitation.AgencyLogo = a.Image
 	return solicitation, nil
 }
 
