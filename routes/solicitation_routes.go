@@ -9,6 +9,8 @@ func SolicitationRoutes(app *fiber.App) {
 	app.Post("/solicitations", controllers.CreateSolicitation)
 	app.Get("/solicitations", controllers.GetSolicitation)
 	app.Get("/solicitations/:id", controllers.GetSolicitationById)
+	app.Get("/documents/:id", controllers.ListSolicitationDocuments)
+	app.Get("/documents/:id/:name", controllers.GetSolicitationDocument)
 	app.Put("/solicitations/:id", controllers.UpdateSolicitation)
 	app.Put("/solicitations/:id/start", controllers.StartSolicitation)
 	app.Put("/solicitations/:id/end", controllers.EndSolicitation)

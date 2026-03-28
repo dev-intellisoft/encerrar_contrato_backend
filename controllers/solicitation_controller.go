@@ -29,16 +29,51 @@ func CreateSolicitation(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := database.DB.Where("email = ?", solicitation.Customer.Email).First(&customer).Scan(&customer).Error; err != nil {
+	customerQuery := database.DB
+	if solicitation.Customer.CPF != "" && solicitation.Customer.Email != "" {
+		customerQuery = customerQuery.Where(
+			"cpf = ? OR email = ?",
+			solicitation.Customer.CPF,
+			solicitation.Customer.Email,
+		)
+	} else if solicitation.Customer.CPF != "" {
+		customerQuery = customerQuery.Where("cpf = ?", solicitation.Customer.CPF)
+	} else if solicitation.Customer.Email != "" {
+		customerQuery = customerQuery.Where("email = ?", solicitation.Customer.Email)
+	}
+
+	if err := customerQuery.First(&customer).Scan(&customer).Error; err != nil {
 		if err := database.DB.Save(&solicitation.Customer).Error; err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error":   "cannot create customer",
 				"details": err.Error(),
 			})
 		}
+	} else {
+		if solicitation.Customer.Name != "" {
+			customer.Name = solicitation.Customer.Name
+		}
+		if solicitation.Customer.CPF != "" {
+			customer.CPF = solicitation.Customer.CPF
+		}
+		if solicitation.Customer.BirthDate != "" {
+			customer.BirthDate = solicitation.Customer.BirthDate
+		}
+		if solicitation.Customer.Email != "" {
+			customer.Email = solicitation.Customer.Email
+		}
+		if solicitation.Customer.Phone != "" {
+			customer.Phone = solicitation.Customer.Phone
+		}
+		if err := database.DB.Save(&customer).Error; err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error":   "cannot update customer",
+				"details": err.Error(),
+			})
+		}
 	}
 
-	_ = database.DB.Where("email = ?", solicitation.Customer.Email).First(&customer).Scan(&customer)
+	_ = database.DB.Where("id = ?", customer.ID).First(&customer).Scan(&customer)
 	solicitation.CustomerID = customer.ID
 	solicitation.Customer = customer
 
@@ -50,14 +85,16 @@ func CreateSolicitation(c *fiber.Ctx) error {
 		})
 	}
 
-	res, err := pkg.Charge(solicitation)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":   "cannot charge customer",
-			"details": err.Error(),
-		})
+	if agency == "encerrar" || agency == "" {
+		res, err := pkg.Charge(solicitation)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error":   "cannot charge customer",
+				"details": err.Error(),
+			})
+		}
+		fmt.Println(res)
 	}
-	fmt.Println(res)
 
 	body, err := os.ReadFile("templates/registration_success.html")
 	if err != nil {
