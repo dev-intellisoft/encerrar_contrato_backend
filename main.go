@@ -110,6 +110,7 @@ func main() {
 
 	app.Static("/", "./public")
 	app.Static("/angecies", "./uploads/angecies")
+	app.Static("/storage/agencies", "./storage/agencies")
 
 	app.Post("/token", func(c *fiber.Ctx) error {
 		fasthttpadaptor.NewFastHTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
