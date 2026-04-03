@@ -9,6 +9,7 @@ import (
 	m "ec.com/models"
 	"ec.com/pkg"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 func GetSolicitationById(id uuid.UUID) (m.Solicitation, error) {
@@ -30,20 +31,45 @@ func CreateSolicitation(solicitation m.Solicitation) (m.Solicitation, error) {
 	}
 
 	var customer m.Customer
-	exists := false
+	found := false
 
-	//check if the email is associtated with an existing customer
-	_ = database.DB.Where("email = ?", solicitation.Customer.Email).First(&customer).Scan(&customer)
-	if customer.ID != uuid.Nil {
-		exists = true
-		//update customer
-		if err := database.DB.Where("email = ?", solicitation.Customer.Email).Updates(&solicitation.Customer).Error; err != nil {
-			println(err.Error())
+	// Prefer CPF match; fallback to Email
+	if solicitation.Customer.CPF != "" {
+		if err := database.DB.Where("cpf = ?", solicitation.Customer.CPF).First(&customer).Error; err == nil {
+			found = true
+		} else if err != gorm.ErrRecordNotFound {
+			return m.Solicitation{}, err
+		}
+	}
+	if !found && solicitation.Customer.Email != "" {
+		if err := database.DB.Where("email = ?", solicitation.Customer.Email).First(&customer).Error; err == nil {
+			found = true
+		} else if err != gorm.ErrRecordNotFound {
+			return m.Solicitation{}, err
 		}
 	}
 
-	//if the customer does not exist, create a new one
-	if !exists {
+	if found {
+		// Update only provided fields
+		if solicitation.Customer.Name != "" {
+			customer.Name = solicitation.Customer.Name
+		}
+		if solicitation.Customer.CPF != "" {
+			customer.CPF = solicitation.Customer.CPF
+		}
+		if solicitation.Customer.BirthDate != "" {
+			customer.BirthDate = solicitation.Customer.BirthDate
+		}
+		if solicitation.Customer.Email != "" {
+			customer.Email = solicitation.Customer.Email
+		}
+		if solicitation.Customer.Phone != "" {
+			customer.Phone = solicitation.Customer.Phone
+		}
+		if err := database.DB.Save(&customer).Error; err != nil {
+			return m.Solicitation{}, err
+		}
+	} else {
 		if err := database.DB.Create(&solicitation.Customer).Scan(&customer).Error; err != nil {
 			return m.Solicitation{}, err
 		}
