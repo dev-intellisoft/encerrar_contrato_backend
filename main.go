@@ -102,6 +102,7 @@ func main() {
 	routes.RegistrationRoutes(app)
 
 	app.Static("/", "./public")
+	app.Static("/storage", "./storage")
 
 	app.Post("/token", func(c *fiber.Ctx) error {
 		fasthttpadaptor.NewFastHTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -136,6 +137,7 @@ func main() {
 	routes.UserRoutes(app)
 	routes.SolicitationRoutes(app)
 	routes.AgencyRoutes(app)
+	routes.ServiceRoutes(app)
 
 	if err := app.Listen(":3002"); err != nil {
 		println(err.Error())

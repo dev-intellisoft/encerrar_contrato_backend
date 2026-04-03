@@ -3,70 +3,227 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Templates de E-mail - Encerrar Contrato</title>
+    <title>Encerrar Contrato</title>
     <style>
         body {
             margin: 0;
-            padding: 0;
-            background-color: #f5f7fa;
-            font-family: Arial, sans-serif;
+            padding: 24px 12px;
+            background: #eef3ff;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #1f2937;
         }
-        .container {
-            max-width: 600px;
-            margin: 30px auto;
+
+        .wrapper {
+            max-width: 640px;
+            margin: 0 auto;
+        }
+
+        .card {
             background: #ffffff;
-            border-radius: 8px;
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 18px 50px rgba(29, 78, 216, 0.10);
+            border: 1px solid #dbe7ff;
         }
-        .header {
-            background-color: #2F80ED;
+
+        .hero {
+            background: linear-gradient(135deg, #071226 0%, #132a57 52%, #2576fb 100%);
+            padding: 28px 32px;
             color: #ffffff;
-            text-align: center;
-            padding: 20px;
-            font-size: 22px;
-            font-weight: bold;
         }
-        .content {
-            padding: 25px;
-            color: #333333;
-            line-height: 1.6;
+
+        .eyebrow {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1.1px;
+            text-transform: uppercase;
+            opacity: 0.82;
+            margin-bottom: 10px;
+        }
+
+        .title {
+            margin: 0;
+            font-size: 30px;
+            line-height: 1.15;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            margin: 12px 0 0;
             font-size: 15px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.92);
         }
+
+        .content {
+            padding: 32px;
+        }
+
+        .greeting {
+            margin: 0 0 18px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .text {
+            margin: 0 0 18px;
+            font-size: 16px;
+            line-height: 1.75;
+            color: #334155;
+        }
+
+        .highlight {
+            background: linear-gradient(180deg, #f7f9ff 0%, #eef4ff 100%);
+            border: 1px solid #d6e4ff;
+            border-radius: 16px;
+            padding: 18px 20px;
+            margin: 24px 0;
+        }
+
+        .highlight-title {
+            margin: 0 0 10px;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #1d4ed8;
+        }
+
+        .highlight-text {
+            margin: 0;
+            font-size: 15px;
+            line-height: 1.7;
+            color: #334155;
+        }
+
+        .steps {
+            margin: 24px 0 28px;
+            padding: 0 0 0 18px;
+            color: #334155;
+        }
+
+        .steps li {
+            margin-bottom: 10px;
+            padding-left: 4px;
+            line-height: 1.65;
+        }
+
+        .cta-wrap {
+            margin: 28px 0 18px;
+        }
+
         .button {
             display: inline-block;
-            background-color: #2F80ED;
-            color: #ffffff;
-            padding: 12px 24px;
-            border-radius: 6px;
+            background: linear-gradient(135deg, #2576fb 0%, #5e17eb 100%);
+            color: #ffffff !important;
+            padding: 16px 30px;
+            border-radius: 14px;
             text-decoration: none;
-            font-weight: bold;
-            margin-top: 15px;
+            font-weight: 700;
+            font-size: 15px;
+            box-shadow: 0 12px 24px rgba(94, 23, 235, 0.22);
         }
+
+        .support {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+            line-height: 1.65;
+            color: #64748b;
+        }
+
+        .signature {
+            margin-top: 22px;
+            font-size: 16px;
+            line-height: 1.7;
+            color: #1f2937;
+        }
+
         .footer {
-            background-color: #f0f0f0;
             text-align: center;
-            font-size: 13px;
-            color: #777777;
-            padding: 15px;
+            font-size: 12px;
+            color: #64748b;
+            padding: 18px 24px 28px;
+        }
+
+        @media only screen and (max-width: 640px) {
+            body {
+                padding: 12px;
+            }
+
+            .hero,
+            .content {
+                padding: 24px 20px;
+            }
+
+            .title {
+                font-size: 26px;
+            }
+
+            .button {
+                display: block;
+                text-align: center;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="wrapper">
+        <div class="card">
+            <div class="hero">
+                <div class="eyebrow">Encerrar Contrato</div>
+                <h1 class="title">Precisamos dos seus dados para continuar o processo</h1>
+                <p class="subtitle">
+                    Este é o próximo passo para concluirmos a solicitação com mais rapidez e segurança.
+                </p>
+            </div>
 
-<!-- TEMPLATE 1 - Convite para preenchimento de dados -->
-<div class="container">
-    <div class="header">Encerrar Contrato</div>
-    <div class="content">
-        <p>Olá {{name}},</p>
-        <p>A Encerrar Contrato iniciou o processo de encerramento dos contratos de <b>água, luz e gás</b> do imóvel em que você residia.</p>
-        <p>Para dar andamento, precisamos que você preencha algumas informações básicas.</p>
-        <p><a href="{{link}}" class="button">Preencher Dados</a></p>
-        <p>Obrigado pela atenção,<br><b>Equipe {{agency}}</b></p>
+            <div class="content">
+                <p class="greeting">Olá {{name}},</p>
+
+                <p class="text">
+                    A <strong>{{agency}}</strong> iniciou o processo de <strong>{{service_label}}</strong>
+                    relacionado ao seu imóvel.
+                </p>
+
+                <div class="highlight">
+                    <p class="highlight-title">Para continuar, precisamos da sua ação</p>
+                    <p class="highlight-text">
+                        Clique no botão abaixo e preencha <strong>todas as informações solicitadas</strong>.
+                        Esse envio é necessário para validar o pedido e dar continuidade ao processo com segurança.
+                    </p>
+                </div>
+
+                <ol class="steps">
+                    <li>Acesse o formulário pelo botão abaixo.</li>
+                    <li>Preencha seus dados e envie os documentos solicitados.</li>
+                    <li>Finalize o envio para que a nossa equipe possa dar continuidade ao atendimento.</li>
+                </ol>
+
+                <div class="cta-wrap">
+                    <a href="{{link}}" class="button">Preencher informações</a>
+                </div>
+
+                <p class="text">
+                    Se você já concluiu esse preenchimento anteriormente, pode desconsiderar esta mensagem.
+                </p>
+
+                <div class="support">
+                    Se tiver qualquer dificuldade para acessar o formulário, responda este e-mail ou entre em contato com nossa equipe de suporte.
+                </div>
+
+                <div class="signature">
+                    Atenciosamente,<br />
+                    <strong>Equipe {{agency}}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            © {{year}} Encerrar Contrato • suporte@encerrarcontrato.com.br
+        </div>
     </div>
-    <div class="footer">
-        © {{year}} Encerrar Contrato — suporte@encerrarcontrato.com.br
-    </div>
-</div>
 </body>
 </html>

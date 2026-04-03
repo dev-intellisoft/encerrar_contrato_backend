@@ -184,14 +184,11 @@ func StartSolicitation(c *fiber.Ctx) error {
 			"details": err.Error(),
 		})
 	}
-	if err := database.DB.Preload("Customer").Preload("Address").First(&solicitation, "id = ?", id).Scan(&solicitation).Error; err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":   "cannot find solicitation",
-			"details": err.Error(),
-		})
-	}
-	//solicitation, err = getSolicitationById(id)
-	if err != nil {
+	if err := database.DB.
+		Preload("Customer").
+		Preload("Address").
+		Where("id = ?", id).
+		First(&solicitation).Error; err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error":   "cannot find solicitation",
 			"details": err.Error(),
@@ -245,8 +242,10 @@ func DeleteSolicitation(c *fiber.Ctx) error {
 
 func SendSolicitation(c *fiber.Ctx) error {
 	var data struct {
-		Email string `json:"email"`
-		Name  string `json:"name"`
+		Email       string `json:"email"`
+		Name        string `json:"name"`
+		Agency      string `json:"agency"`
+		ServiceType string `json:"service_type"`
 	}
 	if err := json.Unmarshal(c.Body(), &data); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -269,9 +268,28 @@ func SendSolicitation(c *fiber.Ctx) error {
 		})
 	}
 	body = bytes.ReplaceAll(body, []byte("{{name}}"), []byte(data.Name))
-	body = bytes.ReplaceAll(body, []byte("{{agency}}"), []byte("Encerrar Contrato"))
+	agencyName := data.Agency
+	if agencyName == "" {
+		agencyName = "Encerrar Contrato"
+	}
+
+	serviceLabel := "encerramento ou transferência de contrato"
+	switch data.ServiceType {
+	case "close":
+		serviceLabel = "encerramento de contrato"
+	case "transfer":
+		serviceLabel = "transferência de contrato"
+	}
+
+	formLink := os.Getenv("FRONTEND_REGISTER_URL")
+	if formLink == "" {
+		formLink = "http://localhost:3002/#/register"
+	}
+
+	body = bytes.ReplaceAll(body, []byte("{{agency}}"), []byte(agencyName))
+	body = bytes.ReplaceAll(body, []byte("{{service_label}}"), []byte(serviceLabel))
 	body = bytes.ReplaceAll(body, []byte("{{year}}"), []byte(time.Now().Format("2006")))
-	body = bytes.ReplaceAll(body, []byte("{{link}}"), []byte("http://localhost:3002/#/register"))
+	body = bytes.ReplaceAll(body, []byte("{{link}}"), []byte(formLink))
 
 	if err := pkg.SendMail(data.Email, "Encerrar Contrato | Solicitação de informações para encerramento de contrato.", string(body)); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
