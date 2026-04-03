@@ -10,3 +10,4 @@ grs
 .env.production
 data/
 uploads/
+backups/
