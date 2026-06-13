@@ -8,7 +8,11 @@ import (
 )
 
 func GetAgencyLogo(c *fiber.Ctx) error {
-	agencyID, err := uuid.Parse(c.Params("agency_id"))
+	agencyParam := c.Params("agency_id")
+	if agencyParam == "" {
+		agencyParam = c.Params("id")
+	}
+	agencyID, err := uuid.Parse(agencyParam)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}

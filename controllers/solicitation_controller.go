@@ -3,6 +3,7 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"ec.com/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 func CreateSolicitation(c *fiber.Ctx) error {
@@ -42,13 +44,21 @@ func CreateSolicitation(c *fiber.Ctx) error {
 		customerQuery = customerQuery.Where("email = ?", solicitation.Customer.Email)
 	}
 
-	if err := customerQuery.First(&customer).Scan(&customer).Error; err != nil {
-		if err := database.DB.Save(&solicitation.Customer).Error; err != nil {
+	if err := customerQuery.First(&customer).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error":   "cannot find customer",
+				"details": err.Error(),
+			})
+		}
+
+		if err := database.DB.Create(&solicitation.Customer).Error; err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error":   "cannot create customer",
 				"details": err.Error(),
 			})
 		}
+		customer = solicitation.Customer
 	} else {
 		if solicitation.Customer.Name != "" {
 			customer.Name = solicitation.Customer.Name
@@ -73,7 +83,6 @@ func CreateSolicitation(c *fiber.Ctx) error {
 		}
 	}
 
-	_ = database.DB.Where("id = ?", customer.ID).First(&customer).Scan(&customer)
 	solicitation.CustomerID = customer.ID
 	solicitation.Customer = customer
 

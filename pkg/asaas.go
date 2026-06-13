@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	m "ec.com/models"
@@ -56,14 +57,21 @@ type ASAASCreditCardPaymentResponse struct {
 	CreditCard             ASAASCreditCardInfo `json:"creditCard"`
 }
 
-// nested credit card info
 type ASAASCreditCardInfo struct {
 	CreditCardBrand  string `json:"creditCardBrand"`
 	CreditCardNumber string `json:"creditCardNumber"`
 	CreditCardToken  string `json:"creditCardToken"`
 }
 
-// (optional) If you also want to include holder details used for the request:
+type asaasErrorItem struct {
+	Code        string `json:"code"`
+	Description string `json:"description"`
+}
+
+type asaasErrorResponse struct {
+	Errors []asaasErrorItem `json:"errors"`
+}
+
 type ASAASCreditCardHolderInfo struct {
 	Name          string `json:"name"`
 	Email         string `json:"email"`
@@ -74,10 +82,47 @@ type ASAASCreditCardHolderInfo struct {
 	MobilePhone   string `json:"mobilePhone"`
 }
 
+func requireASAASConfig() (string, string, error) {
+	baseURL := os.Getenv("ASAAS_URL")
+	token := os.Getenv("ASAAS_TOKEN")
+
+	if baseURL == "" {
+		return "", "", errors.New("ASAAS_URL not configured")
+	}
+	if token == "" {
+		return "", "", errors.New("ASAAS_TOKEN not configured")
+	}
+
+	return baseURL, token, nil
+}
+
+func parseASAASResponseError(statusCode int, body []byte) error {
+	var apiError asaasErrorResponse
+	if err := json.Unmarshal(body, &apiError); err == nil && len(apiError.Errors) > 0 {
+		first := apiError.Errors[0]
+		if first.Code != "" && first.Description != "" {
+			return fmt.Errorf("%s: %s", first.Code, first.Description)
+		}
+		if first.Description != "" {
+			return errors.New(first.Description)
+		}
+	}
+
+	if statusCode >= http.StatusBadRequest {
+		return fmt.Errorf("asaas request failed with status %d", statusCode)
+	}
+
+	return nil
+}
+
 func UpdateCustomer(solicitation m.Solicitation) (m.ASAASCustomer, error) {
 	ASAASCustomer := m.ASAASCustomer{}
+	baseURL, token, err := requireASAASConfig()
+	if err != nil {
+		return ASAASCustomer, err
+	}
 
-	url := fmt.Sprintf("%s/v3/customers/%s", os.Getenv("ASAAS_URL"), solicitation.Customer.ASAASID)
+	url := fmt.Sprintf("%s/v3/customers/%s", baseURL, solicitation.Customer.ASAASID)
 	data := map[string]interface{}{
 		"name":                 solicitation.Customer.Name,
 		"cpfCnpj":              solicitation.Customer.CPF,
@@ -106,16 +151,28 @@ func UpdateCustomer(solicitation m.Solicitation) (m.ASAASCustomer, error) {
 		return ASAASCustomer, err
 	}
 
-	req, _ := http.NewRequest("PUT", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return ASAASCustomer, err
+	}
 
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("content-type", "application/json")
-	req.Header.Add("access_token", os.Getenv("ASAAS_TOKEN"))
+	req.Header.Add("access_token", token)
 
-	res, _ := http.DefaultClient.Do(req)
-
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return ASAASCustomer, err
+	}
 	defer res.Body.Close()
-	body, _ := io.ReadAll(res.Body)
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return ASAASCustomer, err
+	}
+	if err := parseASAASResponseError(res.StatusCode, body); err != nil {
+		return ASAASCustomer, err
+	}
 
 	if err := json.Unmarshal(body, &ASAASCustomer); err != nil {
 		fmt.Println("CreateCustomer:json.Unmarshal:", err.Error())
@@ -127,6 +184,11 @@ func UpdateCustomer(solicitation m.Solicitation) (m.ASAASCustomer, error) {
 
 func CreateCustomer(solicitation m.Solicitation) (m.ASAASCustomer, error) {
 	ASAASCustomer := m.ASAASCustomer{}
+	baseURL, token, err := requireASAASConfig()
+	if err != nil {
+		return ASAASCustomer, err
+	}
+
 	data := map[string]interface{}{
 		"name":                 solicitation.Customer.Name,
 		"cpfCnpj":              solicitation.Customer.CPF,
@@ -148,36 +210,51 @@ func CreateCustomer(solicitation m.Solicitation) (m.ASAASCustomer, error) {
 		"company":              nil,
 		"foreignCustomer":      false,
 	}
+
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		fmt.Println("CreateCustomer:json.Marshal:", err.Error())
 		return ASAASCustomer, err
 	}
-	url := fmt.Sprintf("%s/v3/customers", os.Getenv("ASAAS_URL"))
+
+	url := fmt.Sprintf("%s/v3/customers", baseURL)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Println("CreateCustomer:http.NewRequest:", err.Error())
 		return ASAASCustomer, err
 	}
+
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("content-type", "application/json")
-	req.Header.Add("access_token", os.Getenv("ASAAS_TOKEN"))
+	req.Header.Add("access_token", token)
+
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Println("CreateCustomer:http.DefaultClient.Do:", err.Error())
 		return ASAASCustomer, err
 	}
 	defer res.Body.Close()
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		// fmt.Println("CreateCustomer:io.ReadAll:", err.Error())
 		return ASAASCustomer, err
 	}
-	// fmt.Println("CreateCustomer:io.ReadAll:", string(body))
+	fmt.Println("CreateCustomer:io.ReadAll:", string(body))
+
+	if err := parseASAASResponseError(res.StatusCode, body); err != nil {
+		fmt.Println("CreateCustomer:apiError:", err.Error())
+		return ASAASCustomer, err
+	}
+
 	if err := json.Unmarshal(body, &ASAASCustomer); err != nil {
 		fmt.Println("CreateCustomer:json.Unmarshal:", err.Error())
 		return ASAASCustomer, err
 	}
+
+	if strings.TrimSpace(ASAASCustomer.ID) == "" {
+		return ASAASCustomer, errors.New("asaas customer response missing id")
+	}
+
 	return ASAASCustomer, nil
 }
 
@@ -187,29 +264,43 @@ func ChargeWebsiteCheckout(solicitation m.Solicitation, value float64, descripti
 
 func ASAASListCustomers() (m.ASAASCustomerList, error) {
 	ASAASCustomerList := m.ASAASCustomerList{}
-	url := fmt.Sprintf("%s/v3/customers", os.Getenv("ASAAS_URL"))
+	baseURL, token, err := requireASAASConfig()
+	if err != nil {
+		return ASAASCustomerList, err
+	}
+
+	url := fmt.Sprintf("%s/v3/customers", baseURL)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		fmt.Println("ASAASListCustomers:http.NewRequest:", err.Error())
 		return ASAASCustomerList, err
 	}
+
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("access_token", os.Getenv("ASAAS_TOKEN"))
+	req.Header.Add("access_token", token)
+
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Println("ASAASListCustomers:http.DefaultClient.Do:", err.Error())
 		return ASAASCustomerList, err
 	}
 	defer res.Body.Close()
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Println("ASAASListCustomers:io.ReadAll:", err.Error())
 		return ASAASCustomerList, err
 	}
+	if err := parseASAASResponseError(res.StatusCode, body); err != nil {
+		fmt.Println("ASAASListCustomers:apiError:", err.Error())
+		return ASAASCustomerList, err
+	}
+
 	if err := json.Unmarshal(body, &ASAASCustomerList); err != nil {
 		fmt.Println("ASAASListCustomers:json.Unmarshal:", err.Error())
 		return ASAASCustomerList, err
 	}
+
 	return ASAASCustomerList, nil
 }
 
@@ -220,47 +311,62 @@ func ASAASGetCustomerIdByEmail(email string) (string, error) {
 		return "", err
 	}
 	for _, ASAASCustomer := range ASAASCustomerList.Data {
-		if ASAASCustomer.Email == email {
+		if strings.EqualFold(strings.TrimSpace(ASAASCustomer.Email), strings.TrimSpace(email)) {
 			return ASAASCustomer.ID, nil
 		}
 	}
-	return "", oerr.New("customer not found")
+	return "", errCustomerNotFound
 }
 
-func Bill(customerId string, value float64, solitationId uuid.UUID) (m.ASAASPayment, error) {
+func Bill(customerId string, value float64, solicitationId uuid.UUID) (m.ASAASPayment, error) {
 	ASAASPayment := m.ASAASPayment{}
-	url := fmt.Sprintf("%s/v3/payments", os.Getenv("ASAAS_URL"))
+	baseURL, token, err := requireASAASConfig()
+	if err != nil {
+		return ASAASPayment, err
+	}
+
+	url := fmt.Sprintf("%s/v3/payments", baseURL)
 	data := map[string]interface{}{
 		"billingType": "PIX",
 		"value":       value,
 		"dueDate":     time.Now().Format("2006-01-02"),
-		"description": solitationId.String(),
+		"description": solicitationId.String(),
 		"customer":    customerId,
 	}
+
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		fmt.Println("Bill:json.Marshal:", err.Error())
 		return ASAASPayment, err
 	}
+
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Println("Bill:http.NewRequest:", err.Error())
 		return ASAASPayment, err
 	}
+
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("content-type", "application/json")
-	req.Header.Add("access_token", os.Getenv("ASAAS_TOKEN"))
+	req.Header.Add("access_token", token)
+
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Println("Bill:http.DefaultClient.Do:", err.Error())
 		return ASAASPayment, err
 	}
 	defer res.Body.Close()
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Println("Bill:io.ReadAll:", err.Error())
 		return ASAASPayment, err
 	}
+	if err := parseASAASResponseError(res.StatusCode, body); err != nil {
+		fmt.Println("Bill:apiError:", err.Error())
+		return ASAASPayment, err
+	}
+
 	if err := json.Unmarshal(body, &ASAASPayment); err != nil {
 		fmt.Println("Bill:json.Unmarshal:", err.Error())
 		return ASAASPayment, err
@@ -273,7 +379,8 @@ func Bill(customerId string, value float64, solitationId uuid.UUID) (m.ASAASPaym
 
 func Charge(solicitation m.Solicitation) (m.ASAASPixResponse, error) {
 	var PIX m.ASAASPixResponse
-	var total float64 = 0
+	var total float64
+
 	for _, item := range solicitation.Items {
 		total += item.Price
 	}
@@ -283,10 +390,11 @@ func Charge(solicitation m.Solicitation) (m.ASAASPixResponse, error) {
 	}
 
 	customerId, err := ASAASGetCustomerIdByEmail(solicitation.Customer.Email)
-	if err != nil && err.Error() != "customer not found" {
+	if err != nil && !errors.Is(err, errCustomerNotFound) {
 		fmt.Println("Charge:ASAASGetCustomerIdByEmail:", err.Error())
 		return PIX, err
 	}
+
 	if customerId == "" {
 		fmt.Println("Create Customer Begin")
 		ASAASCustomer, err := CreateCustomer(solicitation)
@@ -299,51 +407,66 @@ func Charge(solicitation m.Solicitation) (m.ASAASPixResponse, error) {
 		fmt.Println("Create Customer End")
 	}
 	if customerId == "" {
-		return PIX, oerr.New("customer not found")
+		return PIX, errCustomerNotFound
 	}
 
-	//todo fix this
-	// ASAASPayment, err := Bill(customerId, solicitation.Value, solicitation.ID)
 	ASAASPayment, err := Bill(customerId, total, solicitation.ID)
 	if err != nil {
 		fmt.Println("Charge:Bill:ASAASPayment", err.Error())
 		return PIX, err
 	}
+
 	PIX, err = GeneratePIXQRCode(ASAASPayment)
 	if err != nil {
 		fmt.Println("Charge:GeneratePIXQRCode:PIX", err.Error())
 		return PIX, err
 	}
+
 	PIX.PaymentID = ASAASPayment.ID
 	PIX.Value = total
+
 	return PIX, nil
 }
 
 func GeneratePIXQRCode(ASAASPayment m.ASAASPayment) (m.ASAASPixResponse, error) {
 	ASAASPixResponse := m.ASAASPixResponse{}
-	url := fmt.Sprintf("%s/v3/payments/%s/pixQrCode", os.Getenv("ASAAS_URL"), ASAASPayment.ID)
+	baseURL, token, err := requireASAASConfig()
+	if err != nil {
+		return ASAASPixResponse, err
+	}
+
+	url := fmt.Sprintf("%s/v3/payments/%s/pixQrCode", baseURL, ASAASPayment.ID)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		fmt.Println("GeneratePIXQRCode:http.NewRequest:", err.Error())
 		return ASAASPixResponse, err
 	}
+
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("access_token", os.Getenv("ASAAS_TOKEN"))
+	req.Header.Add("access_token", token)
+
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Println("GeneratePIXQRCode:http.DefaultClient.Do:", err.Error())
 		return ASAASPixResponse, err
 	}
 	defer res.Body.Close()
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Println("GeneratePIXQRCode:io.ReadAll:", err.Error())
 		return ASAASPixResponse, err
 	}
+	if err := parseASAASResponseError(res.StatusCode, body); err != nil {
+		fmt.Println("GeneratePIXQRCode:apiError:", err.Error())
+		return ASAASPixResponse, err
+	}
+
 	if err := json.Unmarshal(body, &ASAASPixResponse); err != nil {
 		fmt.Println("GeneratePIXQRCode:json.Unmarshal:", err.Error())
 		return ASAASPixResponse, err
 	}
+
 	return ASAASPixResponse, nil
 }
 
@@ -369,14 +492,12 @@ func ChargeWithOptions(solicitation m.Solicitation, billingType string, value fl
 	var payment m.ASAASPayment
 	var PIX m.ASAASPixResponse
 
-	//try go get customer on ASAAS list
 	customerId, err := ASAASGetCustomerIdByEmail(solicitation.Customer.Email)
 	if err != nil && !errors.Is(err, errCustomerNotFound) {
 		fmt.Println("Charge:ASAASGetCustomerIdByEmail:", err.Error())
 		return payment, PIX, err
 	}
 
-	//if customer not found, create it
 	if customerId == "" {
 		fmt.Println("Create Customer Begin")
 		ASAASCustomer, err := CreateCustomer(solicitation)
@@ -418,13 +539,14 @@ func BillWithOptions(customerId, billingType string, value float64, description 
 	if err != nil {
 		return ASAASPayment, err
 	}
+
 	url := fmt.Sprintf("%s/v3/payments", baseURL)
 
 	if billingType == "" {
 		billingType = "PIX"
 	}
-	if value <= 0 {
-		value = 10
+	if value < 20 {
+		value = 20
 	}
 	if description == "" {
 		description = "12345"
@@ -459,11 +581,15 @@ func BillWithOptions(customerId, billingType string, value float64, description 
 		fmt.Println("Bill:http.DefaultClient.Do:", err.Error())
 		return ASAASPayment, err
 	}
-
 	defer res.Body.Close()
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Println("Bill:io.ReadAll:", err.Error())
+		return ASAASPayment, err
+	}
+	if err := parseASAASResponseError(res.StatusCode, body); err != nil {
+		fmt.Println("Bill:apiError:", err.Error())
 		return ASAASPayment, err
 	}
 
@@ -475,13 +601,50 @@ func BillWithOptions(customerId, billingType string, value float64, description 
 	return ASAASPayment, nil
 }
 
-func CreatePIX(ASAASPayment m.ASAASPayment) (m.ASAASPixResponse, error) {
+func GetPayment(paymentID string) (m.ASAASPayment, error) {
+	payment := m.ASAASPayment{}
+	baseURL, token, err := requireASAASConfig()
+	if err != nil {
+		return payment, err
+	}
 
+	url := fmt.Sprintf("%s/v3/payments/%s", baseURL, paymentID)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return payment, err
+	}
+
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("access_token", token)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return payment, err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return payment, err
+	}
+	if err := parseASAASResponseError(res.StatusCode, body); err != nil {
+		return payment, err
+	}
+
+	if err := json.Unmarshal(body, &payment); err != nil {
+		return payment, err
+	}
+
+	return payment, nil
+}
+
+func CreatePIX(ASAASPayment m.ASAASPayment) (m.ASAASPixResponse, error) {
 	ASAASPixResponse := m.ASAASPixResponse{}
 	baseURL, token, err := requireASAASConfig()
 	if err != nil {
 		return ASAASPixResponse, err
 	}
+
 	url := fmt.Sprintf("%s/v3/payments/%s/pixQrCode", baseURL, ASAASPayment.ID)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -497,11 +660,15 @@ func CreatePIX(ASAASPayment m.ASAASPayment) (m.ASAASPixResponse, error) {
 		fmt.Println("CreatePIX:http.DefaultClient.Do:", err.Error())
 		return ASAASPixResponse, err
 	}
-
 	defer res.Body.Close()
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Println("CreatePIX:io.ReadAll:", err.Error())
+		return ASAASPixResponse, err
+	}
+	if err := parseASAASResponseError(res.StatusCode, body); err != nil {
+		fmt.Println("CreatePIX:apiError:", err.Error())
 		return ASAASPixResponse, err
 	}
 
@@ -511,18 +678,4 @@ func CreatePIX(ASAASPayment m.ASAASPayment) (m.ASAASPixResponse, error) {
 	}
 
 	return ASAASPixResponse, nil
-}
-
-func requireASAASConfig() (string, string, error) {
-	baseURL := os.Getenv("ASAAS_URL")
-	token := os.Getenv("ASAAS_TOKEN")
-
-	if baseURL == "" {
-		return "", "", errors.New("ASAAS_URL not configured")
-	}
-	if token == "" {
-		return "", "", errors.New("ASAAS_TOKEN not configured")
-	}
-
-	return baseURL, token, nil
 }

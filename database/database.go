@@ -38,7 +38,14 @@ func Connect() {
 	db.AutoMigrate(&models.Agency{})
 	db.AutoMigrate(&models.Service{})
 	db.AutoMigrate(&models.SolicitationItem{})
-
+	db.AutoMigrate(&models.SiteLead{})
+	db.AutoMigrate(&models.SiteLeadV2{})
+	db.Exec(`DROP INDEX IF EXISTS public.idx_site_leads_asaas_payment_id`)
+	db.Exec(`DROP INDEX IF EXISTS idx_site_leads_asaas_payment_id`)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_site_leads_asaas_payment_id ON site_leads (asaas_payment_id)`)
+	db.Exec(`DROP INDEX IF EXISTS public.idx_site_leads_v2_asaas_payment_id`)
+	db.Exec(`DROP INDEX IF EXISTS idx_site_leads_v2_asaas_payment_id`)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_site_leads_v2_asaas_payment_id ON site_leads_v2 (asaas_payment_id)`)
 	SeedService(db)
 	SeedUser(db)
 
