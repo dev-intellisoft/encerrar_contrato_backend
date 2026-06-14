@@ -3,6 +3,8 @@ app.db
 build
 bin
 storage
+!storage/
+!storage/token_store.go
 public
 grs
 .env
