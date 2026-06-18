@@ -284,7 +284,7 @@ func finalizeReleasedLeadV2(lead *models.SiteLeadV2) error {
 	}
 
 	supportEmail := firstNonEmpty(osEnv("SUPPORT_EMAIL"), "suporte@encerrarcontrato.com")
-	if err := pkg.SendMail(
+	if _, err := pkg.SendMail(
 		supportEmail,
 		fmt.Sprintf("Encerrar Contrato | Lead v2 liberado por pagamento - %s", lead.FullName),
 		buildSiteLeadV2Mail(*lead),
@@ -356,7 +356,7 @@ func buildSiteLeadV2Mail(lead models.SiteLeadV2) string {
 		row("Empresa / provedora", lead.Provider),
 		row("Matricula", lead.Registration),
 		row("Unidade consumidora", lead.ConsumerUnit),
-		row("Instalacao", lead.Installation),
+		row("Numero de instalacao", lead.Installation),
 		row("Codigo do cliente", lead.CustomerCode),
 		row("Observacoes", lead.Notes),
 		row("Fatura Asaas", lead.InvoiceURL),

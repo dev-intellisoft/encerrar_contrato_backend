@@ -405,7 +405,7 @@ func finalizeReleasedLead(lead *models.SiteLead) error {
 	}
 
 	supportEmail := firstNonEmpty(osEnv("SUPPORT_EMAIL"), "suporte@encerrarcontrato.com")
-	if err := pkg.SendMail(
+	if _, err := pkg.SendMail(
 		supportEmail,
 		fmt.Sprintf("Encerrar Contrato | Lead liberado por pagamento - %s", lead.FullName),
 		buildSiteLeadMail(*lead),
