@@ -294,25 +294,14 @@ func countServices(serviceKeys []string, mode string) int {
 }
 
 func siteLeadPriceForCount(serviceCount int) float64 {
-	single := envFloat("SITE_PRICE_1_SERVICE", 74.00)
-	double := envFloat("SITE_PRICE_2_SERVICES", 99.00)
-	triple := envFloat("SITE_PRICE_3_SERVICES", 135.00)
-
 	switch serviceCount {
 	case 3:
-		return ensureMinSiteLeadAmount(triple)
+		return 17.00
 	case 2:
-		return ensureMinSiteLeadAmount(double)
+		return 16.00
 	default:
-		return ensureMinSiteLeadAmount(single)
+		return 15.00
 	}
-}
-
-func ensureMinSiteLeadAmount(value float64) float64 {
-	if value < 20 {
-		return 20
-	}
-	return value
 }
 
 func envFloat(key string, fallback float64) float64 {
