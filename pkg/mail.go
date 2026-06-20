@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -12,11 +13,11 @@ import (
 func SendMail(to, subject, body string) (string, error) {
 	mailGunKey := os.Getenv("MAILGUN_API_KEY")
 	if mailGunKey == "" {
-		panic("MAILGUN_API_KEY is not set")
+		return "", errors.New("MAILGUN_API_KEY is not set")
 	}
 	domain := os.Getenv("MAILGUN_DOMAIN")
 	if domain == "" {
-		panic("MAILGUN_DOMAIN is not set")
+		return "", errors.New("MAILGUN_DOMAIN is not set")
 	}
 
 	mg := mailgun.NewMailgun(domain, mailGunKey)
@@ -24,7 +25,7 @@ func SendMail(to, subject, body string) (string, error) {
 	// mg.SetAPIBase("https://api.eu.mailgun.net")
 	mail := os.Getenv("EMAIL")
 	if mail == "" {
-		panic("EMAIL is not set")
+		return "", errors.New("EMAIL is not set")
 	}
 	m := mg.NewMessage(
 		fmt.Sprintf("Encerrar Contrato <%s>", mail),

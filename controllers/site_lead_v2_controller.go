@@ -289,10 +289,12 @@ func finalizeReleasedLeadV2(lead *models.SiteLeadV2) error {
 		fmt.Sprintf("Encerrar Contrato | Lead v2 liberado por pagamento - %s", lead.FullName),
 		buildSiteLeadV2Mail(*lead),
 	); err != nil {
+		fmt.Println("SendMail SiteLeadV2:", err.Error())
 		lead.LastError = err.Error()
 		return nil
 	}
 
+	fmt.Println("SendMail SiteLeadV2: success for", lead.Email)
 	now := time.Now()
 	lead.SupportMailSent = true
 	lead.SupportMailSentAt = &now
