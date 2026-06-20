@@ -545,8 +545,8 @@ func BillWithOptions(customerId, billingType string, value float64, description 
 	if billingType == "" {
 		billingType = "PIX"
 	}
-	if value < 20 {
-		value = 20
+	if value <= 0 {
+		value = 15
 	}
 	if description == "" {
 		description = "12345"
