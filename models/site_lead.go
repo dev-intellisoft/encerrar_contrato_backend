@@ -19,6 +19,7 @@ type SiteLead struct {
 	Services          string     `json:"services" gorm:"size:255"`
 	ServiceCount      int        `json:"service_count"`
 	FullName          string     `json:"full_name" gorm:"size:160"`
+	BirthDate         string     `json:"birth_date" gorm:"size:20"`
 	CPF               string     `json:"cpf" gorm:"size:32;index"`
 	Phone             string     `json:"phone" gorm:"size:32"`
 	Email             string     `json:"email" gorm:"size:160;index"`

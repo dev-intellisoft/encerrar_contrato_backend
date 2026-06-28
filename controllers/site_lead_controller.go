@@ -24,6 +24,7 @@ type siteLeadRequest struct {
 	ServiceKeys []string `json:"serviceKeys"`
 	FormData    struct {
 		FullName      string `json:"fullName"`
+		BirthDate     string `json:"birthDate"`
 		CPF           string `json:"cpf"`
 		Phone         string `json:"phone"`
 		Email         string `json:"email"`
@@ -108,6 +109,7 @@ func CreateSiteLead(c *fiber.Ctx) error {
 		Services:       strings.TrimSpace(payload.Services),
 		ServiceCount:   serviceCount,
 		FullName:       strings.TrimSpace(payload.FormData.FullName),
+		BirthDate:      normalizeBirthDate(payload.FormData.BirthDate),
 		CPF:            digitsOnly(payload.FormData.CPF),
 		Phone:          digitsOnly(payload.FormData.Phone),
 		Email:          strings.TrimSpace(payload.FormData.Email),
@@ -314,6 +316,9 @@ func validateSiteLeadPayload(payload siteLeadRequest) map[string]string {
 	if strings.TrimSpace(payload.FormData.FullName) == "" {
 		errors["fullName"] = "Nome completo e obrigatorio"
 	}
+	if !isValidBirthDate(payload.FormData.BirthDate) {
+		errors["birthDate"] = "Data de nascimento invalida"
+	}
 	if len(digitsOnly(payload.FormData.CPF)) != 11 {
 		errors["cpf"] = "CPF invalido"
 	}
@@ -384,7 +389,7 @@ func siteLeadToSolicitation(lead models.SiteLead) models.Solicitation {
 			CPF:       lead.CPF,
 			Email:     lead.Email,
 			Phone:     lead.Phone,
-			BirthDate: "",
+			BirthDate: lead.BirthDate,
 		},
 		Address: models.Address{
 			Street:       firstNonEmpty(lead.Provider, "Solicitacao via site"),
@@ -576,6 +581,7 @@ func buildSiteLeadMail(lead models.SiteLead) string {
 		row("Valor", fmt.Sprintf("R$ %.2f", lead.Amount)),
 		row("Status do pagamento", lead.PaymentStatus),
 		row("Nome", lead.FullName),
+		row("Data de nascimento", formatBirthDateForDisplay(lead.BirthDate)),
 		row("CPF", lead.CPF),
 		row("Telefone", lead.Phone),
 		row("E-mail", lead.Email),
@@ -608,6 +614,48 @@ func buildSiteLeadMail(lead models.SiteLead) string {
 		time.Now().Format("02/01/2006 15:04"),
 		strings.Join(rows, ""),
 	)
+}
+
+func isValidBirthDate(value string) bool {
+	normalized := normalizeBirthDate(value)
+	if normalized == "" {
+		return false
+	}
+
+	parsed, err := time.Parse("2006-01-02", normalized)
+	if err != nil {
+		return false
+	}
+
+	return parsed.Format("2006-01-02") == normalized
+}
+
+func normalizeBirthDate(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return ""
+	}
+
+	parsed, err := time.Parse("2006-01-02", trimmed)
+	if err != nil {
+		return ""
+	}
+
+	return parsed.Format("2006-01-02")
+}
+
+func formatBirthDateForDisplay(value string) string {
+	normalized := normalizeBirthDate(value)
+	if normalized == "" {
+		return strings.TrimSpace(value)
+	}
+
+	parsed, err := time.Parse("2006-01-02", normalized)
+	if err != nil {
+		return normalized
+	}
+
+	return parsed.Format("02/01/2006")
 }
 
 func digitsOnly(value string) string {
