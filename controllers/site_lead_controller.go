@@ -636,12 +636,14 @@ func normalizeBirthDate(value string) string {
 		return ""
 	}
 
-	parsed, err := time.Parse("2006-01-02", trimmed)
-	if err != nil {
-		return ""
+	for _, layout := range []string{"2006-01-02", "02/01/2006"} {
+		parsed, err := time.Parse(layout, trimmed)
+		if err == nil {
+			return parsed.Format("2006-01-02")
+		}
 	}
 
-	return parsed.Format("2006-01-02")
+	return ""
 }
 
 func formatBirthDateForDisplay(value string) string {
