@@ -163,24 +163,48 @@ func HandleAsaasWebhookV2(c *fiber.Ctx) error {
 		})
 	}
 
-	fmt.Println("HandleAsaasWebhookV2: event=", payload.Event, "payment=", paymentID, "status=", payload.Payment.Status)
-
-	var lead models.SiteLeadV2
-	if err := database.DB.First(&lead, "asaas_payment_id = ?", paymentID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"ok":      false,
-				"error":   "lead_not_found",
-				"details": "Lead nao encontrado para o pagamento informado.",
-			})
-		}
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"ok":      false,
-			"error":   "cannot_load_lead",
-			"details": err.Error(),
-		})
+	externalReference := strings.TrimSpace(fmt.Sprint(payload.Payment.ExternalReference))
+	if externalReference == "<nil>" {
+		externalReference = ""
 	}
 
+	fmt.Println("HandleAsaasWebhookV2: event=", payload.Event, "payment=", paymentID, "status=", payload.Payment.Status, "externalReference=", externalReference)
+
+	var lead models.SiteLeadV2
+	err = database.DB.First(&lead, "asaas_payment_id = ?", paymentID).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			if externalReference != "" {
+				err = database.DB.First(&lead, "CAST(id AS TEXT) = ?", externalReference).Error
+			}
+			if err == gorm.ErrRecordNotFound || (externalReference == "" && err != nil) {
+				fmt.Println("HandleAsaasWebhookV2: lead not found, acking webhook to avoid Asaas queue penalty", "paymentID=", paymentID, "externalReference=", externalReference)
+				return c.JSON(fiber.Map{
+					"ok":                true,
+					"ignored":           true,
+					"error":             "lead_not_found",
+					"payment":           paymentID,
+					"externalReference": externalReference,
+				})
+			}
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"ok":      false,
+					"error":   "cannot_load_lead",
+					"details": err.Error(),
+				})
+			}
+			if lead.AsaasPaymentID == "" || strings.HasPrefix(lead.AsaasPaymentID, "pending:v2:") {
+				lead.AsaasPaymentID = paymentID
+			}
+		} else {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"ok":      false,
+				"error":   "cannot_load_lead",
+				"details": err.Error(),
+			})
+		}
+	}
 	fmt.Println(
 		"HandleAsaasWebhookV2: matched leadID=", lead.ID,
 		"supportMailSent=", lead.SupportMailSent,
@@ -219,6 +243,7 @@ func HandleAsaasWebhookV2(c *fiber.Ctx) error {
 
 func siteLeadV2ToSolicitation(lead models.SiteLeadV2) models.Solicitation {
 	return models.Solicitation{
+		ID:     lead.ID,
 		Agency: "site-v2",
 		Customer: models.Customer{
 			Name:      lead.FullName,

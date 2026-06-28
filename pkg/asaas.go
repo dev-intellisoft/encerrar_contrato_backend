@@ -515,7 +515,12 @@ func ChargeWithOptions(solicitation m.Solicitation, billingType string, value fl
 
 	fmt.Println("CustomerId:", customerId)
 
-	ASAASPayment, err := BillWithOptions(customerId, billingType, value, description)
+	externalReference := ""
+	if solicitation.ID != uuid.Nil {
+		externalReference = solicitation.ID.String()
+	}
+
+	ASAASPayment, err := BillWithOptions(customerId, billingType, value, description, externalReference)
 	if err != nil {
 		fmt.Println("Charge:Bill:ASAASPayment", err.Error())
 		return payment, PIX, err
@@ -533,7 +538,7 @@ func ChargeWithOptions(solicitation m.Solicitation, billingType string, value fl
 	return payment, PIX, nil
 }
 
-func BillWithOptions(customerId, billingType string, value float64, description string) (m.ASAASPayment, error) {
+func BillWithOptions(customerId, billingType string, value float64, description string, externalReference string) (m.ASAASPayment, error) {
 	ASAASPayment := m.ASAASPayment{}
 	baseURL, token, err := requireASAASConfig()
 	if err != nil {
@@ -559,6 +564,11 @@ func BillWithOptions(customerId, billingType string, value float64, description 
 		"description": description,
 		"customer":    customerId,
 	}
+	externalReference = strings.TrimSpace(externalReference)
+	if externalReference != "" {
+		data["externalReference"] = externalReference
+	}
+	fmt.Println("BillWithOptions: externalReference=", externalReference)
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
