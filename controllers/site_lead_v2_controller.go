@@ -146,8 +146,10 @@ func GetSiteLeadStatusV2(c *fiber.Ctx) error {
 func HandleAsaasWebhookV2(c *fiber.Ctx) error {
 	payload, err := parseAsaasWebhookPayload(c)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"ok":      false,
+		fmt.Println("HandleAsaasWebhookV2: cannot parse webhook, acking to avoid Asaas queue penalty", err.Error())
+		return c.JSON(fiber.Map{
+			"ok":      true,
+			"ignored": true,
 			"error":   "cannot_parse_webhook",
 			"details": err.Error(),
 		})
@@ -156,8 +158,9 @@ func HandleAsaasWebhookV2(c *fiber.Ctx) error {
 	paymentID := strings.TrimSpace(payload.Payment.ID)
 	if paymentID == "" {
 		fmt.Println("HandleAsaasWebhookV2: missing payment id, body=", string(c.Body()))
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"ok":      false,
+		return c.JSON(fiber.Map{
+			"ok":      true,
+			"ignored": true,
 			"error":   "missing_payment_id",
 			"details": "Webhook sem pagamento.",
 		})
