@@ -49,6 +49,20 @@ type asaasWebhookRequest struct {
 	} `json:"payment"`
 }
 
+func parseAsaasWebhookPayload(c *fiber.Ctx) (asaasWebhookRequest, error) {
+	var payload asaasWebhookRequest
+
+	if err := c.BodyParser(&payload); err == nil && strings.TrimSpace(payload.Payment.ID) != "" {
+		return payload, nil
+	}
+
+	if err := json.Unmarshal(c.Body(), &payload); err != nil {
+		return asaasWebhookRequest{}, fmt.Errorf("cannot decode webhook body: %w | body=%s", err, string(c.Body()))
+	}
+
+	return payload, nil
+}
+
 func CreateSiteLead(c *fiber.Ctx) error {
 	var payload siteLeadRequest
 	if err := c.BodyParser(&payload); err != nil {
@@ -180,8 +194,8 @@ func GetSiteLeadStatus(c *fiber.Ctx) error {
 }
 
 func HandleAsaasWebhook(c *fiber.Ctx) error {
-	var payload asaasWebhookRequest
-	if err := c.BodyParser(&payload); err != nil {
+	payload, err := parseAsaasWebhookPayload(c)
+	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"ok":      false,
 			"error":   "cannot_parse_webhook",
@@ -191,12 +205,15 @@ func HandleAsaasWebhook(c *fiber.Ctx) error {
 
 	paymentID := strings.TrimSpace(payload.Payment.ID)
 	if paymentID == "" {
+		fmt.Println("HandleAsaasWebhook: missing payment id, body=", string(c.Body()))
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"ok":      false,
 			"error":   "missing_payment_id",
 			"details": "Webhook sem pagamento.",
 		})
 	}
+
+	fmt.Println("HandleAsaasWebhook: event=", payload.Event, "payment=", paymentID, "status=", payload.Payment.Status)
 
 	var lead models.SiteLead
 	if err := database.DB.First(&lead, "asaas_payment_id = ?", paymentID).Error; err != nil {
@@ -294,14 +311,7 @@ func countServices(serviceKeys []string, mode string) int {
 }
 
 func siteLeadPriceForCount(serviceCount int) float64 {
-	switch serviceCount {
-	case 3:
-		return 17.00
-	case 2:
-		return 16.00
-	default:
-		return 15.00
-	}
+	return 7.00
 }
 
 func envFloat(key string, fallback float64) float64 {
