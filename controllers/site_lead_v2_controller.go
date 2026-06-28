@@ -181,6 +181,12 @@ func HandleAsaasWebhookV2(c *fiber.Ctx) error {
 		})
 	}
 
+	fmt.Println(
+		"HandleAsaasWebhookV2: matched leadID=", lead.ID,
+		"supportMailSent=", lead.SupportMailSent,
+		"supportMailSentAt=", lead.SupportMailSentAt,
+	)
+
 	lead.PaymentStatus = strings.ToUpper(strings.TrimSpace(payload.Payment.Status))
 	lead.AsaasCustomerID = firstNonEmpty(strings.TrimSpace(payload.Payment.Customer), lead.AsaasCustomerID)
 	lead.InvoiceURL = firstNonEmpty(strings.TrimSpace(payload.Payment.InvoiceURL), lead.InvoiceURL)
@@ -254,6 +260,13 @@ func applyPaymentToSiteLeadV2(lead *models.SiteLeadV2, payment models.ASAASPayme
 	lead.PaymentStatus = strings.ToUpper(strings.TrimSpace(payment.Status))
 	lead.Status = siteLeadStatusFromPayment(lead.PaymentStatus)
 
+	fmt.Println(
+		"applyPaymentToSiteLeadV2: leadID=", lead.ID,
+		"paymentID=", lead.AsaasPaymentID,
+		"paymentStatus=", lead.PaymentStatus,
+		"supportMailSent=", lead.SupportMailSent,
+	)
+
 	if pix != nil {
 		lead.PixPayload = firstNonEmpty(strings.TrimSpace(pix.Payload), lead.PixPayload)
 		lead.PixEncodedImage = firstNonEmpty(strings.TrimSpace(pix.EncodedImage), lead.PixEncodedImage)
@@ -272,6 +285,12 @@ func applyPaymentToSiteLeadV2(lead *models.SiteLeadV2, payment models.ASAASPayme
 
 func finalizeReleasedLeadV2(lead *models.SiteLeadV2) error {
 	if !isPaidStatus(lead.PaymentStatus) {
+		fmt.Println(
+			"finalizeReleasedLeadV2: payment not eligible for release",
+			"leadID=", lead.ID,
+			"paymentID=", lead.AsaasPaymentID,
+			"paymentStatus=", lead.PaymentStatus,
+		)
 		return nil
 	}
 
@@ -283,21 +302,42 @@ func finalizeReleasedLeadV2(lead *models.SiteLeadV2) error {
 	lead.Status = "paid"
 
 	if lead.SupportMailSent {
+		fmt.Println(
+			"finalizeReleasedLeadV2: support email already sent, skipping",
+			"leadID=", lead.ID,
+			"paymentID=", lead.AsaasPaymentID,
+			"supportMailSentAt=", lead.SupportMailSentAt,
+		)
 		return nil
 	}
 
 	supportEmail := firstNonEmpty(osEnv("SUPPORT_EMAIL"), "suporte@encerrarcontrato.com")
-	if _, err := pkg.SendMail(
+	messageID, err := pkg.SendMail(
 		supportEmail,
 		fmt.Sprintf("Encerrar Contrato | Lead v2 liberado por pagamento - %s", lead.FullName),
 		buildSiteLeadV2Mail(*lead),
-	); err != nil {
-		fmt.Println("SendMail SiteLeadV2:", err.Error())
+	)
+	if err != nil {
+		fmt.Println(
+			"SendMail SiteLeadV2: error",
+			"leadID=", lead.ID,
+			"paymentID=", lead.AsaasPaymentID,
+			"to=", supportEmail,
+			"leadEmail=", lead.Email,
+			"err=", err.Error(),
+		)
 		lead.LastError = err.Error()
 		return nil
 	}
 
-	fmt.Println("SendMail SiteLeadV2: success for", lead.Email)
+	fmt.Println(
+		"SendMail SiteLeadV2: accepted by Mailgun",
+		"leadID=", lead.ID,
+		"paymentID=", lead.AsaasPaymentID,
+		"to=", supportEmail,
+		"messageID=", messageID,
+		"leadEmail=", lead.Email,
+	)
 	now := time.Now()
 	lead.SupportMailSent = true
 	lead.SupportMailSentAt = &now
