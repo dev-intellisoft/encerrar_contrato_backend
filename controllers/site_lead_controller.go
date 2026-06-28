@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -57,11 +58,23 @@ func parseAsaasWebhookPayload(c *fiber.Ctx) (asaasWebhookRequest, error) {
 		return payload, nil
 	}
 
-	if err := json.Unmarshal(c.Body(), &payload); err != nil {
-		return asaasWebhookRequest{}, fmt.Errorf("cannot decode webhook body: %w | body=%s", err, string(c.Body()))
+	body := c.Body()
+
+	if err := json.Unmarshal(body, &payload); err == nil && strings.TrimSpace(payload.Payment.ID) != "" {
+		return payload, nil
 	}
 
-	return payload, nil
+	formValues, err := url.ParseQuery(string(body))
+	if err == nil {
+		rawData := strings.TrimSpace(formValues.Get("data"))
+		if rawData != "" {
+			if err := json.Unmarshal([]byte(rawData), &payload); err == nil && strings.TrimSpace(payload.Payment.ID) != "" {
+				return payload, nil
+			}
+		}
+	}
+
+	return asaasWebhookRequest{}, fmt.Errorf("cannot decode webhook body | body=%s", string(body))
 }
 
 func CreateSiteLead(c *fiber.Ctx) error {
