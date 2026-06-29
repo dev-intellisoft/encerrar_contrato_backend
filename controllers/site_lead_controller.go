@@ -363,7 +363,14 @@ func countServices(serviceKeys []string, mode string) int {
 }
 
 func siteLeadPriceForCount(serviceCount int) float64 {
-	return 7.00
+	switch serviceCount {
+	case 1:
+		return 74.90
+	case 2:
+		return 99.90
+	default:
+		return 134.90
+	}
 }
 
 func envFloat(key string, fallback float64) float64 {
